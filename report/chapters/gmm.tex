@@ -1,0 +1,203 @@
+
+\documentclass[12pt,a4paper]{article}
+
+% ===== CÁC GÓI CẦN THIẾT =====
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{vietnamese}
+\setmainfont{Times New Roman}
+
+\usepackage{amsmath,amssymb,bm}
+\usepackage{enumitem}
+\usepackage{setspace}
+
+\setstretch{1.25}
+\setlength{\parindent}{1cm}
+\setlength{\parskip}{4pt}
+
+\begin{document}
+
+% Đánh số bắt đầu từ mục 3
+\setcounter{section}{2}
+
+\section{Gaussian Mixture Model}
+
+\subsection{Model Formulation}
+
+\subsubsection*{Mixture of K Gaussians}
+
+Gaussian Mixture Models (GMM) là một thuật toán phân cụm,
+tính phân phối xác suất của mỗi điểm thuộc về tất cả các cụm.
+Khác với K-means là mỗi điểm chỉ thuộc về một cụm, GMM
+ước lượng xác suất một điểm dữ liệu thuộc về từng cụm.
+Điều này cho phép mô hình biểu diễn các cụm có vùng chồng lấn
+và thể hiện sự không chắc chắn trong việc phân cụm.
+
+GMM giả định rằng dữ liệu được sinh ra từ hỗn hợp gồm
+$K$ phân phối Gaussian đa chiều. Hàm mật độ xác suất của
+điểm dữ liệu $\bm{x}_n$ được xác định theo công thức sau:
+
+\begin{equation}
+p(\bm{x}_n \mid \boldsymbol{\theta})
+=
+\sum_{k=1}^{K}
+\pi_k
+\mathcal{N}(\bm{x}_n \mid \bm{\mu}_k,\boldsymbol{\Sigma}_k)
+\end{equation}
+
+Trong đó:
+\begin{itemize}[leftmargin=1.5cm]
+    \item $K$ là số thành phần Gaussian.
+    \item $\pi_k$ là trọng số hỗn hợp của thành phần thứ $k$.
+    \item $\bm{\mu}_k$ là vector trung bình.
+    \item $\boldsymbol{\Sigma}_k$ là ma trận hiệp phương sai.
+    \item $\boldsymbol{\theta}$ đại diện cho toàn bộ tham số
+    của mô hình.
+\end{itemize}
+
+Các trọng số hỗn hợp thỏa mãn điều kiện:
+
+\begin{equation}
+\sum_{k=1}^{K}\pi_k=1,
+\qquad \pi_k \geq 0
+\end{equation}
+
+\subsubsection*{Multivariate Gaussian Distribution}
+
+Các điểm dữ liệu thường có nhiều đặc trưng, nên GMM
+thường sử dụng phân phối Gaussian đa chiều. Công thức
+hàm mật độ xác suất của phân phối Gaussian đa chiều được
+xác định như sau:
+
+\begin{equation}
+\mathcal{N}(\bm{x}\mid\bm{\mu},\boldsymbol{\Sigma})
+=
+\frac{1}
+{(2\pi)^{D/2}|\boldsymbol{\Sigma}|^{1/2}}
+\exp\left(
+-\frac{1}{2}
+(\bm{x}-\bm{\mu})^{T}
+\boldsymbol{\Sigma}^{-1}
+(\bm{x}-\bm{\mu})
+\right)
+\end{equation}
+
+Trong đó:
+\begin{itemize}[leftmargin=1.5cm]
+    \item $D$ là số chiều dữ liệu.
+    \item $|\boldsymbol{\Sigma}|$ là định thức của ma trận
+    hiệp phương sai.
+    \item $\bm{\mu}$ là vector trung bình.
+    \item $\boldsymbol{\Sigma}^{-1}$ là ma trận nghịch đảo
+    của ma trận hiệp phương sai.
+\end{itemize}
+
+$\bm{\mu}$ xác định tâm của một thành phần Gaussian,
+trong khi $\boldsymbol{\Sigma}$ mô tả mức độ phân tán
+và mối quan hệ giữa các đặc trưng. Nhờ đó, GMM có thể
+biểu diễn các cụm có kích thước, hình dạng và hướng
+phân bố khác nhau.
+
+\subsubsection*{Parameters: $\pi$, $\mu$, $\Sigma$}
+
+\paragraph{Mixture weights ($\pi_k$)}
+
+Trọng số hỗn hợp biểu thị xác suất tiên nghiệm của việc
+lựa chọn thành phần Gaussian thứ $k$. Trọng số càng lớn
+thì thành phần tương ứng đóng góp càng nhiều vào phân phối
+hỗn hợp tổng thể.
+
+\paragraph{Mean vectors ($\bm{\mu}_k$)}
+
+Vector trung bình xác định vị trí tâm của một thành phần
+Gaussian trong không gian đặc trưng. Mỗi thành phần có
+một vector trung bình riêng, được ước lượng từ dữ liệu
+quan sát trong quá trình huấn luyện mô hình.
+
+\paragraph{Covariance matrices ($\boldsymbol{\Sigma}_k$)}
+
+Ma trận hiệp phương sai mô tả mức độ phân tán và mối
+tương quan giữa các đặc trưng trong một thành phần.
+Các phần tử trên đường chéo chính biểu thị phương sai
+của từng đặc trưng, trong khi các phần tử ngoài đường
+chéo biểu thị hiệp phương sai giữa các đặc trưng khác nhau.
+
+\subsection{The Likelihood Problem}
+
+\subsubsection*{Log-likelihood with latent variables}
+
+Với tập dữ liệu gồm $N$ điểm quan sát độc lập, hàm
+likelihood đo lường mức độ mà các tham số của mô hình
+giải thích được dữ liệu quan sát. Dựa trên giả định các
+điểm dữ liệu độc lập, likelihood của toàn bộ tập dữ liệu
+được tính bằng tích xác suất mật độ của từng điểm:
+
+\begin{equation}
+L(\boldsymbol{\theta})
+=
+\prod_{n=1}^{N}
+p(\bm{x}_n\mid\boldsymbol{\theta})
+\end{equation}
+
+Thay công thức phân phối hỗn hợp Gaussian vào likelihood,
+ta có:
+
+\begin{equation}
+L(\boldsymbol{\theta})
+=
+\prod_{n=1}^{N}
+\left[
+\sum_{k=1}^{K}
+\pi_k
+\mathcal{N}(\bm{x}_n\mid
+\bm{\mu}_k,\boldsymbol{\Sigma}_k)
+\right]
+\end{equation}
+
+Mục tiêu của quá trình ước lượng tham số là tìm ra bộ
+tham số làm cho likelihood đạt giá trị lớn nhất:
+
+\begin{equation}
+\boldsymbol{\theta}^{*}
+=
+\arg\max_{\boldsymbol{\theta}}
+L(\boldsymbol{\theta})
+\end{equation}
+
+Tuy nhiên, việc làm việc trực tiếp với tích của nhiều
+mật độ xác suất có thể gây bất tiện về mặt tính toán số.
+Vì vậy, người ta thường lấy logarithm của likelihood
+để xây dựng hàm log-likelihood:
+
+\begin{align}
+\ell(\boldsymbol{\theta})
+&= \log L(\boldsymbol{\theta})\\
+&= \sum_{n=1}^{N}
+\log p(\bm{x}_n\mid\boldsymbol{\theta})\\
+&= \sum_{n=1}^{N}
+\log\left[
+\sum_{k=1}^{K}
+\pi_k
+\mathcal{N}(\bm{x}_n\mid
+\bm{\mu}_k,\boldsymbol{\Sigma}_k)
+\right]
+\end{align}
+
+Phép logarithm chuyển tích các biểu thức xác suất thành
+tổng, giúp việc phân tích và tối ưu hóa thuận tiện hơn.
+Trong quá trình triển khai, tính toán log-likelihood
+cũng có thể giúp hạn chế hiện tượng tràn số hoặc mất độ
+chính xác khi nhân nhiều giá trị rất nhỏ.
+
+\subsubsection*{Intractability of direct solution}
+
+Đối với GMM, biểu thức log-likelihood chứa logarithm
+của tổng các thành phần Gaussian. Do đó, việc tối ưu hóa
+trực tiếp các tham số có thể trở nên phức tạp.
+Phương pháp Expectation-Maximization (EM) thường được
+sử dụng để ước lượng các tham số của mô hình thông qua
+hai bước lặp: Expectation (E-step) và Maximization
+(M-step).
+
+\end{document}
