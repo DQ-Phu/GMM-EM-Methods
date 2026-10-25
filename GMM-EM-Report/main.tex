@@ -1,0 +1,112 @@
+% ============================================================
+%  MAIN.TEX – Tệp gốc báo cáo
+%  Gaussian Mixture Model và Thuật toán Expectation-Maximization
+% ============================================================
+\documentclass[12pt, a4paper]{article}
+
+\input{preamble}
+
+% ============================================================
+%  Thông tin tài liệu
+% ============================================================
+\hypersetup{
+  pdftitle  = {Mô hình Hỗn hợp Gaussian và Thuật toán EM},
+  pdfauthor = {Nhóm sinh viên},
+  pdfsubject= {Toán cho Khoa học Máy tính},
+}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+% ------------------------------------------------------------
+%  Trang bìa
+% ------------------------------------------------------------
+\begin{titlepage}
+  \centering
+  \vspace*{1cm}
+
+  {\Large\bfseries TRƯỜNG ĐẠI HỌC \ldots\\[4pt]
+   KHOA \ldots}
+
+  \vspace{1.5cm}
+  \rule{\linewidth}{1.5pt}\\[6pt]
+  {\LARGE\bfseries Mô hình Hỗn hợp Gaussian\\[6pt]
+   và Thuật toán Expectation-Maximization}\\[6pt]
+  \rule{\linewidth}{1.5pt}
+
+  \vspace{1cm}
+  {\large Báo cáo môn: \textbf{Toán cho Khoa học Máy tính}}
+
+  \vspace{2cm}
+  \begin{tabular}{ll}
+    \textbf{Nhóm thực hiện:} & \\[4pt]
+    \quad Họ tên thành viên 1 & -- MSSV: xxxxxxxx \\
+    \quad Họ tên thành viên 2 & -- MSSV: xxxxxxxx \\
+    \quad Họ tên thành viên 3 & -- MSSV: xxxxxxxx \\
+    \quad Họ tên thành viên 4 & -- MSSV: xxxxxxxx \\[8pt]
+    \textbf{Giảng viên hướng dẫn:} & Thầy/Cô \ldots \\[8pt]
+    \textbf{Học kỳ:}  & \ldots -- Năm học: 20xx--20xx \\
+  \end{tabular}
+
+  \vfill
+  {\large Thành phố Hồ Chí Minh, tháng~\ldots~năm~20xx}
+\end{titlepage}
+
+% ------------------------------------------------------------
+%  Tóm tắt
+% ------------------------------------------------------------
+\begin{abstract}
+  \noindent
+  Báo cáo này trình bày lý thuyết và ứng dụng của Mô hình Hỗn hợp Gaussian
+  (Gaussian Mixture Model – GMM) và thuật toán Expectation-Maximization (EM).
+  Chúng tôi bắt đầu từ nền tảng toán học cần thiết, xây dựng mô hình GMM,
+  suy dẫn đầy đủ các bước E-step và M-step, phân tích tính hội tụ, rồi so sánh
+  GMM với phương pháp phân cụm $k$-means.
+  Phần thực nghiệm minh họa hoạt động của thuật toán trên các bộ dữ liệu tổng hợp
+  và thực tế, kèm theo phân tích định lượng.
+
+  \medskip\noindent
+  \textbf{Từ khóa:} Mô hình hỗn hợp Gaussian, Thuật toán EM,
+  Phân cụm mềm, Biến ẩn, Hội tụ log-likelihood.
+\end{abstract}
+
+% ------------------------------------------------------------
+%  Mục lục & danh sách hình/bảng
+% ------------------------------------------------------------
+\tableofcontents
+\clearpage
+\listoffigures
+\listoftables
+\clearpage
+
+% ============================================================
+%  NỘI DUNG CHÍNH
+% ============================================================
+\input{chapters/01_introduction}
+\clearpage
+
+\input{chapters/02_mathematical_foundations}
+\clearpage
+
+\input{chapters/03_gaussian_mixture_model}
+\clearpage
+
+\input{chapters/04_expectation_maximization}
+\clearpage
+
+\input{chapters/05_kmeans_vs_gmm}
+\clearpage
+
+\input{chapters/06_experiments_results}
+\clearpage
+
+\input{chapters/07_conclusion}
+\clearpage
+
+% ------------------------------------------------------------
+%  Tài liệu tham khảo
+% ------------------------------------------------------------
+\printbibliography[heading=bibintoc, title={Tài liệu tham khảo}]
+
+\end{document}

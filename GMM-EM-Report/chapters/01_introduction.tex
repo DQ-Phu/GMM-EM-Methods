@@ -1,0 +1,43 @@
+% ============================================================
+%  CHƯƠNG 1: GIỚI THIỆU
+%  Người viết: [Họ tên thành viên phụ trách]
+% ============================================================
+
+\section{Giới thiệu}
+\label{sec:introduction}
+
+\subsection{Đặt vấn đề}
+Phân cụm (clustering) là một trong những bài toán cốt lõi của học máy không có
+giám sát (unsupervised learning). Trong thực tế, dữ liệu quan sát thường được tạo
+ra bởi nhiều cơ chế khác nhau mà ta không biết trước nhãn; mục tiêu là tự động
+khám phá cấu trúc tiềm ẩn này.
+
+% TODO: Mở rộng phần đặt vấn đề, có thể thêm ví dụ thực tế như phân đoạn ảnh,
+%       nhận dạng giọng nói, phân nhóm khách hàng, …
+
+\subsection{Mục tiêu báo cáo}
+Báo cáo này có ba mục tiêu cụ thể:
+\begin{enumerate}[label=(\arabic*)]
+  \item Trình bày hệ thống lý thuyết về mô hình hỗn hợp xác suất, tập trung
+        vào Mô hình Hỗn hợp Gaussian (GMM).
+  \item Suy dẫn chi tiết thuật toán Expectation-Maximization (EM) áp dụng
+        cho GMM, bao gồm chứng minh tính đảm bảo không giảm log-likelihood
+        qua mỗi vòng lặp.
+  \item Thực nghiệm, phân tích và so sánh với phương pháp $k$-means cổ điển.
+\end{enumerate}
+
+\subsection{Phạm vi và cấu trúc báo cáo}
+Báo cáo được tổ chức như sau:
+\begin{itemize}
+  \item \textbf{Phần~\ref{sec:math_foundations}} – Nền tảng toán học: xác suất,
+        phân phối Gaussian đa biến và bất đẳng thức Jensen.
+  \item \textbf{Phần~\ref{sec:gmm}} – Định nghĩa và đặc tính của GMM.
+  \item \textbf{Phần~\ref{sec:estep}–\ref{sec:mstep}} – Suy dẫn đầy đủ
+        E-step và M-step.
+  \item \textbf{Phần~\ref{sec:kmeans_vs_gmm}} – So sánh GMM với $k$-means.
+  \item \textbf{Phần~\ref{sec:experiments}} – Thực nghiệm.
+  \item \textbf{Phần~\ref{sec:conclusion}} – Kết luận và hướng phát triển.
+\end{itemize}
+
+% TODO: Nếu muốn, bổ sung một đoạn ngắn về các ứng dụng nổi bật của GMM+EM
+%       (phát hiện bất thường, mô hình hóa giọng nói GMM-UBM, …)

@@ -1,0 +1,203 @@
+% ============================================================
+%  PREAMBLE - Cấu hình toàn bộ gói lệnh và macro cho báo cáo
+%  Gaussian Mixture Model & Expectation-Maximization
+% ============================================================
+
+% ------------------------------------------------------------
+%  Mã hoá & ngôn ngữ
+% ------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}          % hỗ trợ tiếng Việt
+\usepackage[vietnamese,english]{babel}
+
+% ------------------------------------------------------------
+%  Toán học
+% ------------------------------------------------------------
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{bm}                   % \bm{} thay cho \boldsymbol trong inline
+\usepackage{bbm}                  % \mathbbm{1} cho hàm chỉ báo
+\usepackage{dsfont}               % \mathds{1}
+\usepackage{nicefrac}             % a/b đẹp hơn trong inline
+
+% ------------------------------------------------------------
+%  Hình ảnh & đồ thị
+% ------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage[section]{placeins}    % giữ float trong section
+\usepackage{subcaption}           % subfigure / subtable
+\usepackage{float}                % tùy chọn [H]
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, fit, backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ------------------------------------------------------------
+%  Bảng biểu
+% ------------------------------------------------------------
+\usepackage{booktabs}             % \toprule, \midrule, \bottomrule
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{longtable}
+
+% ------------------------------------------------------------
+%  Thuật toán & code
+% ------------------------------------------------------------
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\SetAlgoLined
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray}\itshape,
+  stringstyle=\color{teal},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=8pt,
+  backgroundcolor=\color{gray!8},
+  frame=single,
+  frameround=tttt,
+  breaklines=true,
+  captionpos=b,
+  tabsize=4,
+  showstringspaces=false,
+}
+
+% ------------------------------------------------------------
+%  Tài liệu tham khảo
+% ------------------------------------------------------------
+\usepackage[
+  backend=biber,
+  style=ieee,
+  sorting=none,
+  maxbibnames=6,
+  minbibnames=3,
+]{biblatex}
+\addbibresource{references.bib}
+
+% ------------------------------------------------------------
+%  Hyperlinks & PDF metadata
+% ------------------------------------------------------------
+\usepackage[
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=teal!70!black,
+  urlcolor=blue!60!black,
+  bookmarksopen=true,
+  bookmarksnumbered=true,
+]{hyperref}
+\usepackage{bookmark}
+
+% ------------------------------------------------------------
+%  Giao diện trang
+% ------------------------------------------------------------
+\usepackage[
+  top=2.5cm, bottom=2.5cm,
+  left=3cm,  right=2.5cm,
+  headheight=14pt,
+]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ------------------------------------------------------------
+%  Tiêu đề mục (titlesec)
+% ------------------------------------------------------------
+\usepackage{titlesec}
+\titleformat{\section}[block]
+  {\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}[block]
+  {\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+% ------------------------------------------------------------
+%  Khoảng cách dòng
+% ------------------------------------------------------------
+\usepackage{setspace}
+\setstretch{1.3}
+
+% ------------------------------------------------------------
+%  Các gói tiện ích khác
+% ------------------------------------------------------------
+\usepackage{microtype}            % cải thiện căn chỉnh chữ
+\usepackage{enumitem}             % tùy chỉnh list
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf, skip=4pt}
+\usepackage{cleveref}            % \cref, \Cref
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% ------------------------------------------------------------
+%  Định lý, Bổ đề, Mệnh đề …
+% ------------------------------------------------------------
+\theoremstyle{plain}
+\newtheorem{theorem}{Định lý}[section]
+\newtheorem{lemma}[theorem]{Bổ đề}
+\newtheorem{proposition}[theorem]{Mệnh đề}
+\newtheorem{corollary}[theorem]{Hệ quả}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Định nghĩa}
+\newtheorem{example}[theorem]{Ví dụ}
+\newtheorem{remark}[theorem]{Nhận xét}
+
+% ------------------------------------------------------------
+%  Macro toán học tắt
+% ------------------------------------------------------------
+% Vectors & matrices
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vmu}{\boldsymbol{\mu}}
+\newcommand{\vSigma}{\boldsymbol{\Sigma}}
+\newcommand{\vpi}{\boldsymbol{\pi}}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vz}{\mathbf{z}}
+\newcommand{\vI}{\mathbf{I}}
+
+% Distributions
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\Exp}{\mathbb{E}}
+
+% Sets & spaces
+\newcommand{\R}{\mathbb{R}}
+
+% Operators
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\KL}{KL}
+
+% GMM-specific
+\newcommand{\responsibility}{\gamma}   % γ_{nk}
+\newcommand{\Nk}{N_k}                  % effective count
+\newcommand{\gmmparam}{\theta}
+
+% Shorthands
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\norm}[1]{\left\|#1\right\|}
+\newcommand{\inner}[2]{\langle #1,\,#2\rangle}
+
+% ------------------------------------------------------------
+%  Hộp "Tóm tắt công thức" màu
+% ------------------------------------------------------------
+\newtcolorbox{formulabox}[1][]{
+  enhanced, breakable,
+  colback=blue!5!white,
+  colframe=blue!50!black,
+  fonttitle=\bfseries,
+  title={#1},
+  sharp corners=south,
+}
+
+\newtcolorbox{notebox}[1][Lưu ý]{
+  enhanced, breakable,
+  colback=orange!8!white,
+  colframe=orange!60!black,
+  fonttitle=\bfseries,
+  title={#1},
+}

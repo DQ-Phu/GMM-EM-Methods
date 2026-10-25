@@ -1,0 +1,100 @@
+% ============================================================
+%  CHƯƠNG 6: THỰC NGHIỆM VÀ KẾT QUẢ
+%  Người viết: [Họ tên thành viên phụ trách]
+% ============================================================
+
+\section{Thực nghiệm và Kết quả}
+\label{sec:experiments}
+
+% -----------------------------------------------------------
+\subsection{Môi trường thực nghiệm}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Ngôn ngữ lập trình, thư viện (Python, scikit-learn, NumPy, …)
+%   - Cấu hình phần cứng (CPU, RAM)
+%   - Mã nguồn được lưu tại: code/ (xem thư mục code/ trong repo)
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Dữ liệu tổng hợp}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Mô tả cách sinh dữ liệu: make_blobs / make_classification / tự sinh
+%   - Số mẫu N, số chiều D, số cụm thực K_true
+%   - Các trường hợp: cụm tròn, cụm ellipsoid, cụm chồng lên nhau
+
+\subsubsection{Thiết lập thí nghiệm}
+% TODO: Viết nội dung ở đây
+
+\subsubsection{Kết quả phân cụm}
+% TODO: Mô tả và phân tích kết quả
+
+% Ví dụ chèn hình kết quả:
+% \begin{figure}[H]
+%   \centering
+%   \begin{subfigure}{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{figures/gmm_synthetic_result.pdf}
+%     \caption{GMM-EM}
+%   \end{subfigure}
+%   \hfill
+%   \begin{subfigure}{0.48\linewidth}
+%     \includegraphics[width=\linewidth]{figures/kmeans_synthetic_result.pdf}
+%     \caption{$k$-means}
+%   \end{subfigure}
+%   \caption{Phân cụm trên dữ liệu tổng hợp 2D}
+%   \label{fig:synthetic_result}
+% \end{figure}
+
+\subsubsection{Phân tích hội tụ}
+% Gợi ý: vẽ đường cong log-likelihood qua các vòng lặp EM
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.7\linewidth]{figures/convergence_curve.pdf}
+%   \caption{Log-likelihood theo số vòng lặp EM}
+%   \label{fig:convergence}
+% \end{figure}
+% TODO: Mô tả và phân tích đường cong hội tụ
+
+
+% -----------------------------------------------------------
+\subsection{Dữ liệu thực tế}
+% -----------------------------------------------------------
+% Gợi ý: Iris dataset, MNIST (2D qua PCA), Old Faithful, …
+% TODO: Mô tả bộ dữ liệu
+
+\subsubsection{Mô tả bộ dữ liệu}
+% TODO: Viết nội dung ở đây
+
+\subsubsection{Kết quả và thảo luận}
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Đánh giá định lượng}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Adjusted Rand Index (ARI), Normalized Mutual Information (NMI)
+%   - Silhouette Score (khi không có nhãn thật)
+%   - BIC/AIC để chọn K
+
+\begin{table}[H]
+  \centering
+  \caption{Kết quả đánh giá định lượng}
+  \label{tab:quantitative}
+  \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Bộ dữ liệu} & \textbf{Thuật toán} & \textbf{ARI} & \textbf{NMI} & \textbf{Silhouette} \\
+    \midrule
+    % TODO: Điền kết quả vào đây
+    Tổng hợp 2D & GMM-EM  & -- & -- & -- \\
+    Tổng hợp 2D & $k$-means & -- & -- & -- \\
+    \midrule
+    Iris        & GMM-EM  & -- & -- & -- \\
+    Iris        & $k$-means & -- & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% TODO: Nhận xét bảng kết quả

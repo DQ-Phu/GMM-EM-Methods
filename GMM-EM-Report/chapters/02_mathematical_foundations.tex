@@ -1,0 +1,64 @@
+% ============================================================
+%  CHƯƠNG 2: NỀN TẢNG TOÁN HỌC
+%  Người viết: [Họ tên thành viên phụ trách]
+% ============================================================
+
+\section{Nền tảng toán học}
+\label{sec:math_foundations}
+
+% -----------------------------------------------------------
+\subsection{Biến ngẫu nhiên và xác suất có điều kiện}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Định nghĩa biến ngẫu nhiên liên tục, hàm mật độ xác suất
+%   - Quy tắc nhân xác suất: p(x,z) = p(x|z)p(z)
+%   - Định lý Bayes: p(z|x) = p(x|z)p(z) / p(x)
+%   - Xác suất biên: p(x) = ∑_z p(x,z) hoặc ∫ p(x,z)dz
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Phân phối Gaussian đa biến}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Định nghĩa N(x | μ, Σ), công thức mật độ
+%   - Ý nghĩa của vector trung bình μ và ma trận hiệp phương sai Σ
+%   - Tính chất: đường đồng mức ellipsoid, phân phối biên vẫn là Gaussian
+%   - Trường hợp đặc biệt: Σ = σ²I (isotropic), Σ = diag(σ₁²,…,σ_D²)
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Log-likelihood và ước lượng hợp lý cực đại (MLE)}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Hàm likelihood L(θ; X) và log-likelihood ℓ(θ)
+%   - Nguyên lý MLE: tìm θ* = argmax ℓ(θ)
+%   - Vì sao dùng log? (tránh underflow, biến tích thành tổng)
+%   - Ví dụ: MLE cho Gaussian đơn biến
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Bất đẳng thức Jensen}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Phát biểu: f hàm lồi ⟹ f(E[X]) ≤ E[f(X)]
+%   - Trường hợp hàm lõm (log): E[log X] ≤ log E[X]
+%   - Vai trò trong chứng minh hội tụ của EM (ELBO ≤ log p(x|θ))
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Kỳ vọng của biến ẩn và hàm Q}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Dữ liệu đầy đủ (complete data) vs. dữ liệu quan sát (observed data)
+%   - Định nghĩa hàm Q(θ | θ^(t)) = E_{Z|X,θ^(t)}[log p(X,Z|θ)]
+%   - Đây là nền tảng lý thuyết để hiểu EM ở chương tiếp theo
+
+% TODO: Viết nội dung ở đây

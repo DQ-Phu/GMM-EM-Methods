@@ -1,0 +1,87 @@
+% ============================================================
+%  CHƯƠNG 5: SO SÁNH GMM VỚI K-MEANS
+%  Người viết: [Họ tên thành viên phụ trách]
+% ============================================================
+
+\section{So sánh GMM với \texorpdfstring{$k$}{k}-means}
+\label{sec:kmeans_vs_gmm}
+
+% -----------------------------------------------------------
+\subsection{Ôn lại thuật toán \texorpdfstring{$k$}{k}-means}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Mô tả bước gán nhãn (assignment) và cập nhật tâm cụm (update)
+%   - Hàm mục tiêu: minimize Σ_n Σ_k r_{nk} ||x_n - μ_k||²
+%   - Đây là phân cụm cứng (hard assignment): r_{nk} ∈ {0,1}
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{\texorpdfstring{$k$}{k}-means là trường hợp giới hạn của GMM-EM}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Khi Σ_k = ε²I và ε → 0, responsibility γ_{nk} → r_{nk} ∈ {0,1}
+%   - M-step GMM trong giới hạn này trùng với bước cập nhật tâm k-means
+%   - Phân tích toán học: dẫn xuất từ công thức softmax của γ_{nk}
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Phân cụm mềm vs. phân cụm cứng}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Ưu điểm phân cụm mềm (GMM): uncertainty, điểm nằm giữa cụm
+%   - Hạn chế phân cụm cứng (k-means): mất thông tin biên giới cụm
+%   - Ví dụ minh họa bằng hình vẽ hoặc dữ liệu 2D
+
+% TODO: Viết nội dung ở đây
+
+% Ví dụ chèn hình so sánh:
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=0.85\linewidth]{figures/hard_vs_soft.pdf}
+%   \caption{So sánh phân cụm cứng ($k$-means) và phân cụm mềm (GMM)}
+%   \label{fig:hard_vs_soft}
+% \end{figure}
+
+
+% -----------------------------------------------------------
+\subsection{Bảng tổng hợp so sánh}
+% -----------------------------------------------------------
+% Gợi ý nội dung: điền bảng so sánh các tiêu chí sau
+
+\begin{table}[H]
+  \centering
+  \caption{So sánh $k$-means và GMM-EM}
+  \label{tab:kmeans_vs_gmm}
+  \begin{tabularx}{\linewidth}{lXX}
+    \toprule
+    \textbf{Tiêu chí}         & \textbf{$k$-means}          & \textbf{GMM-EM} \\
+    \midrule
+    Loại phân cụm             & Cứng (hard)                 & Mềm (soft) \\
+    Hàm mục tiêu              & Tổng bình phương khoảng cách & Log-likelihood \\
+    Mô hình xác suất          & Không                       & Có \\
+    Hình dạng cụm             & Hypersphere (isotropic)     & Ellipsoid tùy ý \\
+    Độ phức tạp mỗi bước      & $O(NKD)$                    & $O(NKD^2 + KD^3)$ \\
+    Thông tin bất định        & Không                       & Có (qua $\gamma_{nk}$) \\
+    Nhạy với khởi tạo         & Cao                         & Cao \\
+    % TODO: bổ sung thêm hàng nếu cần
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% TODO: Thêm nhận xét/phân tích bảng trên
+
+
+% -----------------------------------------------------------
+\subsection{Khi nào dùng GMM, khi nào dùng \texorpdfstring{$k$}{k}-means?}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Dữ liệu có cụm hình ellipsoid → GMM
+%   - Cần xác suất thuộc cụm (uncertainty) → GMM
+%   - Tập dữ liệu lớn, cần tốc độ → k-means (hoặc mini-batch k-means)
+%   - Số chiều rất cao → cân nhắc cả hai, regularize Σ_k
+
+% TODO: Viết nội dung ở đây

@@ -1,0 +1,73 @@
+% ============================================================
+%  CHƯƠNG 3: MÔ HÌNH HỖN HỢP GAUSSIAN (GMM)
+%  Người viết: [Họ tên thành viên phụ trách]
+% ============================================================
+
+\section{Mô hình Hỗn hợp Gaussian}
+\label{sec:gmm}
+
+% -----------------------------------------------------------
+\subsection{Trực giác và động lực}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Tại sao một Gaussian đơn không đủ mô tả dữ liệu phức tạp?
+%   - Ý tưởng: dùng tổng có trọng số của nhiều Gaussian (hỗn hợp)
+%   - Ví dụ trực quan: phân phối chiều cao nam/nữ, màu pixel trong ảnh
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Định nghĩa mô hình GMM}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Công thức: p(x|θ) = Σ_k π_k N(x | μ_k, Σ_k)
+%   - Bộ tham số θ = {π_k, μ_k, Σ_k}_{k=1}^K
+%   - Ràng buộc: π_k ≥ 0, Σ_k π_k = 1, Σ_k xác định dương
+%   - K là siêu tham số (hyperparameter)
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Mô hình sinh (Generative model) với biến ẩn}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Biến ẩn one-hot z = (z_1,…,z_K): z_k = 1 nghĩa là chọn thành phần k
+%   - Phân phối tiên nghiệm: p(z_k=1) = π_k  →  Categorical(π)
+%   - Phân phối có điều kiện: p(x | z_k=1, θ) = N(x | μ_k, Σ_k)
+%   - Phân phối kết hợp: p(x,z|θ) = Π_k [π_k N(x|μ_k,Σ_k)]^{z_k}
+%   - Sơ đồ plate notation (nếu có, vẽ bằng TikZ)
+
+% TODO: Viết nội dung ở đây
+
+% Ví dụ sơ đồ plate notation (bỏ comment khi vẽ xong):
+% \begin{figure}[H]
+%   \centering
+%   \input{figures/plate_notation.tex}   % hoặc \includegraphics
+%   \caption{Sơ đồ plate notation của GMM}
+%   \label{fig:plate}
+% \end{figure}
+
+
+% -----------------------------------------------------------
+\subsection{Hàm log-likelihood của dữ liệu quan sát}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - ℓ(θ) = Σ_n log [Σ_k π_k N(x_n | μ_k, Σ_k)]
+%   - Vấn đề: log của tổng → không có nghiệm dạng đóng
+%   - Vì sao không tối ưu trực tiếp? → cần thuật toán EM
+
+% TODO: Viết nội dung ở đây
+
+
+% -----------------------------------------------------------
+\subsection{Tính chất và hạn chế của GMM}
+% -----------------------------------------------------------
+% Gợi ý nội dung:
+%   - Định lý xấp xỉ phổ dụng: GMM xấp xỉ được mọi phân phối liên tục
+%   - Vấn đề singularity (Σ_k suy biến)
+%   - Sự nhạy cảm với khởi tạo và số thành phần K
+%   - Lựa chọn K: BIC, AIC, cross-validation
+
+% TODO: Viết nội dung ở đây

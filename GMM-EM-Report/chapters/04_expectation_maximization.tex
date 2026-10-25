@@ -1,0 +1,171 @@
+\section{E-step: Ước lượng xác suất thuộc cụm}
+\label{sec:estep}
+
+\subsection{Thiết lập bài toán và ký hiệu}
+Xét tập dữ liệu $X=\{\mathbf{x}_1,\ldots,\mathbf{x}_N\}$ gồm $N$ quan sát độc lập, với $\mathbf{x}_n\in\mathbb{R}^D$. Mô hình hỗn hợp Gaussian (GMM) sử dụng $K$ thành phần và bộ tham số $\theta=\{\pi_k,\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k\}_{k=1}^K$, trong đó $\pi_k\geq 0$, $\sum_{k=1}^K\pi_k=1$, còn $\boldsymbol{\Sigma}_k$ là ma trận hiệp phương sai xác định dương. Mật độ của một quan sát là
+\begin{equation}
+p(\mathbf{x}_n\mid\theta)=\sum_{k=1}^K\pi_k\mathcal{N}(\mathbf{x}_n\mid\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k),
+\end{equation}
+với mật độ Gaussian đa biến
+\begin{equation}
+\mathcal{N}(\mathbf{x}\mid\boldsymbol{\mu},\boldsymbol{\Sigma})
+=\frac{\exp\!\left[-\frac12(\mathbf{x}-\boldsymbol{\mu})^{\mathsf T}\boldsymbol{\Sigma}^{-1}(\mathbf{x}-\boldsymbol{\mu})\right]}{(2\pi)^{D/2}|\boldsymbol{\Sigma}|^{1/2}}.
+\end{equation}
+Đặt $z_{nk}=1$ nếu quan sát thứ $n$ được sinh bởi thành phần $k$, và $z_{nk}=0$ trong trường hợp còn lại. Mỗi quan sát chỉ có một thành phần sinh ra nó, nên $\sum_k z_{nk}=1$. Các biến $z_{nk}$ không được quan sát trực tiếp; đây là các biến ẩn cần suy luận. Ký hiệu $\theta^{(t)}$ là bộ tham số đã biết ở đầu vòng lặp thứ $t$.
+
+\subsection{Từ định lý Bayes đến responsibility}
+E-step giữ cố định $\theta^{(t)}$ và tính phân phối hậu nghiệm của biến ẩn. Với một thành phần $k$, định lý Bayes cho
+\begin{equation}
+p(z_{nk}=1\mid\mathbf{x}_n,\theta^{(t)})
+=\frac{p(\mathbf{x}_n\mid z_{nk}=1,\theta^{(t)})\,p(z_{nk}=1\mid\theta^{(t)})}{p(\mathbf{x}_n\mid\theta^{(t)})}.
+\end{equation}
+Trong GMM, xác suất tiên nghiệm của thành phần là $p(z_{nk}=1\mid\theta^{(t)})=\pi_k^{(t)}$, còn mật độ có điều kiện là Gaussian của thành phần đó. Áp dụng công thức xác suất toàn phần cho mẫu số, ta thu được
+\begin{equation}
+\boxed{\gamma_{nk}^{(t)}=
+\frac{\pi_k^{(t)}\mathcal{N}(\mathbf{x}_n\mid\boldsymbol{\mu}_k^{(t)},\boldsymbol{\Sigma}_k^{(t)})}
+{\sum_{j=1}^K\pi_j^{(t)}\mathcal{N}(\mathbf{x}_n\mid\boldsymbol{\mu}_j^{(t)},\boldsymbol{\Sigma}_j^{(t)})}.}
+\label{eq:estep-responsibility}
+\end{equation}
+Đại lượng $\gamma_{nk}^{(t)}$ được gọi là \emph{responsibility}: xác suất hậu nghiệm rằng thành phần $k$ sinh ra $\mathbf{x}_n$. Tử số đo mức đóng góp của riêng thành phần $k$; mẫu số chuẩn hóa đóng góp của tất cả thành phần. Do đó
+\begin{equation}
+0\leq\gamma_{nk}^{(t)}\leq 1,\qquad \sum_{k=1}^K\gamma_{nk}^{(t)}=1.
+\end{equation}
+Đây là phép gán cụm mềm. Chẳng hạn, nếu hai thành phần có đóng góp chưa chuẩn hóa lần lượt là $0.12$ và $0.08$, thì responsibility tương ứng là $0.6$ và $0.4$. Quan sát vẫn đóng góp cho cả hai cụm, với mức độ khác nhau. Cần phân biệt mật độ Gaussian với xác suất: giá trị mật độ riêng lẻ có thể lớn hơn $1$, nhưng responsibility sau chuẩn hóa luôn nằm trong $[0,1]$.
+
+\subsection{Vì sao E-step là bước lấy kỳ vọng?}
+Do $z_{nk}$ là biến chỉ báo nhận giá trị $0$ hoặc $1$, kỳ vọng có điều kiện của nó bằng xác suất nhận giá trị $1$:
+\begin{align}
+\mathbb{E}[z_{nk}\mid X,\theta^{(t)}]
+&=0\,p(z_{nk}=0\mid X,\theta^{(t)})
+ +1\,p(z_{nk}=1\mid X,\theta^{(t)})\\
+&=\gamma_{nk}^{(t)}.
+\end{align}
+Ở đây, tính độc lập của các quan sát khi biết tham số cho phép suy luận nhãn của quan sát $n$ từ $\mathbf{x}_n$. Log-likelihood của dữ liệu đầy đủ $(X,Z)$ là
+\begin{equation}
+\log p(X,Z\mid\theta)=\sum_{n=1}^N\sum_{k=1}^K z_{nk}
+\left[\log\pi_k+\log\mathcal{N}(\mathbf{x}_n\mid\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)\right].
+\end{equation}
+Lấy kỳ vọng biểu thức này theo $p(Z\mid X,\theta^{(t)})$ và dùng tính tuyến tính của kỳ vọng, ta được hàm phụ trợ
+\begin{align}
+Q(\theta\mid\theta^{(t)})
+&=\mathbb{E}_{Z\mid X,\theta^{(t)}}[\log p(X,Z\mid\theta)]\\
+&=\sum_{n=1}^N\sum_{k=1}^K\gamma_{nk}^{(t)}
+\left[\log\pi_k+\log\mathcal{N}(\mathbf{x}_n\mid\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)\right].
+\label{eq:estep-Q}
+\end{align}
+Như vậy, E-step thay các biến chỉ báo chưa biết bằng kỳ vọng hậu nghiệm của chúng để xây dựng $Q$. Trong biểu thức này, $\theta^{(t)}$ chỉ xác định các trọng số $\gamma_{nk}^{(t)}$, còn $\theta$ là bộ tham số sẽ được tối ưu ở M-step. E-step chưa cập nhật trung bình, hiệp phương sai hay trọng số hỗn hợp.
+
+\section{M-step: Cập nhật các tham số của GMM}
+\label{sec:mstep}
+
+\subsection{Hàm mục tiêu cần cực đại hóa}
+Sau E-step, các giá trị $\gamma_{nk}^{(t)}$ được giữ cố định trong toàn bộ M-step. Bộ tham số mới được xác định bởi
+\begin{equation}
+\theta^{(t+1)}=\underset{\theta}{\operatorname{arg\,max}}\;Q(\theta\mid\theta^{(t)}).
+\end{equation}
+Thay logarit của mật độ Gaussian vào công thức~\eqref{eq:estep-Q}, ta có
+\begin{align}
+Q(\theta\mid\theta^{(t)})
+=\sum_{n=1}^N\sum_{k=1}^K\gamma_{nk}^{(t)}\Big[&\log\pi_k-\frac D2\log(2\pi)-\frac12\log|\boldsymbol{\Sigma}_k|\notag\\
+&-\frac12(\mathbf{x}_n-\boldsymbol{\mu}_k)^{\mathsf T}\boldsymbol{\Sigma}_k^{-1}(\mathbf{x}_n-\boldsymbol{\mu}_k)\Big].
+\label{eq:mstep-expanded}
+\end{align}
+Đặt số quan sát hiệu dụng của thành phần $k$ là
+\begin{equation}
+N_k^{(t)}=\sum_{n=1}^N\gamma_{nk}^{(t)}.
+\label{eq:mstep-Nk}
+\end{equation}
+Đây là tổng trọng số trách nhiệm của thành phần đó, nên có thể không nguyên. Từ $\sum_k\gamma_{nk}^{(t)}=1$ suy ra $\sum_kN_k^{(t)}=N$. Các suy dẫn dưới đây giả sử $N_k^{(t)}>0$ và nghiệm hiệp phương sai là xác định dương.
+
+\subsection{Cập nhật trọng số hỗn hợp bằng nhân tử Lagrange}
+Các hạng phụ thuộc vào $\pi_k$ trong $Q$ là $\sum_kN_k^{(t)}\log\pi_k$. Vì các trọng số phải thỏa $\sum_k\pi_k=1$, ta lập hàm Lagrange
+\begin{equation}
+\mathcal{L}(\boldsymbol{\pi},\lambda)
+=\sum_{k=1}^KN_k^{(t)}\log\pi_k+\lambda\left(\sum_{k=1}^K\pi_k-1\right).
+\end{equation}
+Lấy đạo hàm theo từng $\pi_k$ và cho bằng $0$:
+\begin{equation}
+\frac{\partial\mathcal{L}}{\partial\pi_k}
+=\frac{N_k^{(t)}}{\pi_k}+\lambda=0
+\quad\Longrightarrow\quad \pi_k=-\frac{N_k^{(t)}}{\lambda}.
+\end{equation}
+Cộng theo $k$ và sử dụng ràng buộc chuẩn hóa:
+\begin{equation}
+1=\sum_k\pi_k=-\frac{\sum_kN_k^{(t)}}{\lambda}=-\frac N\lambda
+\quad\Longrightarrow\quad\lambda=-N.
+\end{equation}
+Vì vậy,
+\begin{equation}
+\boxed{\pi_k^{(t+1)}=\frac{N_k^{(t)}}{N}.}
+\label{eq:mstep-pi}
+\end{equation}
+Hàm $\sum_kN_k^{(t)}\log\pi_k$ là hàm lõm trên miền trọng số dương, nên nghiệm dừng này là nghiệm cực đại. Về trực giác, trọng số của mỗi thành phần bằng tỷ lệ quan sát hiệu dụng mà nó giải thích.
+
+\subsection{Cập nhật vector trung bình}
+Khi xét riêng $\boldsymbol{\mu}_k$, các hạng liên quan trong $Q$ là
+\begin{equation}
+Q_{\mu_k}=-\frac12\sum_{n=1}^N\gamma_{nk}^{(t)}
+(\mathbf{x}_n-\boldsymbol{\mu}_k)^{\mathsf T}\boldsymbol{\Sigma}_k^{-1}(\mathbf{x}_n-\boldsymbol{\mu}_k).
+\end{equation}
+Với ma trận đối xứng $A$, công thức đạo hàm cơ bản là
+\begin{equation}
+\nabla_{\boldsymbol{\mu}}\big[(\mathbf{x}-\boldsymbol{\mu})^{\mathsf T}A(\mathbf{x}-\boldsymbol{\mu})\big]
+=-2A(\mathbf{x}-\boldsymbol{\mu}).
+\end{equation}
+Do $\boldsymbol{\Sigma}_k^{-1}$ đối xứng, điều kiện gradient bằng $0$ trở thành
+\begin{align}
+\nabla_{\boldsymbol{\mu}_k}Q
+&=\sum_{n=1}^N\gamma_{nk}^{(t)}\boldsymbol{\Sigma}_k^{-1}(\mathbf{x}_n-\boldsymbol{\mu}_k)=\mathbf{0},\\
+\sum_{n=1}^N\gamma_{nk}^{(t)}\mathbf{x}_n
+&=\left(\sum_{n=1}^N\gamma_{nk}^{(t)}\right)\boldsymbol{\mu}_k
+=N_k^{(t)}\boldsymbol{\mu}_k.
+\end{align}
+Ở bước biến đổi thứ hai, ta nhân hai vế với $\boldsymbol{\Sigma}_k$, vốn khả nghịch. Suy ra
+\begin{equation}
+\boxed{\boldsymbol{\mu}_k^{(t+1)}
+=\frac{1}{N_k^{(t)}}\sum_{n=1}^N\gamma_{nk}^{(t)}\mathbf{x}_n.}
+\label{eq:mstep-mu}
+\end{equation}
+Đây là trung bình có trọng số: quan sát có responsibility lớn hơn sẽ kéo tâm cụm về phía nó mạnh hơn. Hessian theo $\boldsymbol{\mu}_k$ bằng $-N_k^{(t)}\boldsymbol{\Sigma}_k^{-1}$, là ma trận xác định âm; do đó nghiệm trên cực đại hóa $Q$ theo trung bình khi giữ hiệp phương sai cố định.
+
+\subsection{Cập nhật ma trận hiệp phương sai}
+Sử dụng trung bình vừa cập nhật, đặt
+\begin{equation}
+\mathbf{r}_{nk}=\mathbf{x}_n-\boldsymbol{\mu}_k^{(t+1)},\qquad
+S_k=\sum_{n=1}^N\gamma_{nk}^{(t)}\mathbf{r}_{nk}\mathbf{r}_{nk}^{\mathsf T}.
+\end{equation}
+Tích ngoài $\mathbf{r}_{nk}\mathbf{r}_{nk}^{\mathsf T}$ là ma trận $D\times D$, mô tả độ phân tán và quan hệ giữa các chiều dữ liệu. Dùng đồng nhất thức
+\begin{equation}
+\mathbf{r}^{\mathsf T}A\mathbf{r}
+=\operatorname{tr}(A\mathbf{r}\mathbf{r}^{\mathsf T}),
+\end{equation}
+ta viết phần phụ thuộc vào hiệp phương sai thành
+\begin{equation}
+Q_{\Sigma_k}=-\frac{N_k^{(t)}}2\log|\boldsymbol{\Sigma}_k|
+-\frac12\operatorname{tr}(\boldsymbol{\Sigma}_k^{-1}S_k)+C,
+\end{equation}
+với $C$ không phụ thuộc vào $\boldsymbol{\Sigma}_k$. Để đạo hàm thuận tiện, đổi biến sang ma trận độ chính xác $\Lambda_k=\boldsymbol{\Sigma}_k^{-1}$. Vì $\log|\boldsymbol{\Sigma}_k|=-\log|\Lambda_k|$, ta được
+\begin{equation}
+Q_{\Lambda_k}=\frac{N_k^{(t)}}2\log|\Lambda_k|
+-\frac12\operatorname{tr}(\Lambda_kS_k)+C.
+\end{equation}
+Với các ma trận đối xứng đang xét, sử dụng $\nabla_{\Lambda}\log|\Lambda|=\Lambda^{-1}$ và $\nabla_{\Lambda}\operatorname{tr}(\Lambda S)=S$. Điều kiện cực trị là
+\begin{align}
+\nabla_{\Lambda_k}Q
+&=\frac{N_k^{(t)}}2\Lambda_k^{-1}-\frac12S_k=0,\\
+\Lambda_k^{-1}&=\frac{S_k}{N_k^{(t)}}.
+\end{align}
+Vì $\Lambda_k^{-1}=\boldsymbol{\Sigma}_k$, công thức cập nhật cuối cùng là
+\begin{equation}
+\boxed{\boldsymbol{\Sigma}_k^{(t+1)}
+=\frac{1}{N_k^{(t)}}\sum_{n=1}^N\gamma_{nk}^{(t)}
+\big(\mathbf{x}_n-\boldsymbol{\mu}_k^{(t+1)}\big)
+\big(\mathbf{x}_n-\boldsymbol{\mu}_k^{(t+1)}\big)^{\mathsf T}.}
+\label{eq:mstep-sigma}
+\end{equation}
+Hàm log-determinant lõm trên miền xác định dương, còn hạng trace tuyến tính theo $\Lambda_k$; vì vậy nghiệm dừng trên cực đại hóa mục tiêu khi $S_k$ xác định dương. Công thức sử dụng \emph{trung bình mới} $\boldsymbol{\mu}_k^{(t+1)}$, nhưng vẫn dùng \emph{responsibility cũ} $\gamma_{nk}^{(t)}$ đã tính ở E-step. Mẫu số là $N_k^{(t)}$, không phải $N_k^{(t)}-1$, vì đây là ước lượng cực đại hóa likelihood, không phải công thức hiệu chỉnh hiệp phương sai mẫu không chệch.
+
+\subsection{Kết quả của một vòng cập nhật}
+E-step tạo các trọng số $\gamma_{nk}^{(t)}$ từ $\theta^{(t)}$. M-step dùng cùng các trọng số đó để lần lượt tính $N_k^{(t)}$, $\pi_k^{(t+1)}$, $\boldsymbol{\mu}_k^{(t+1)}$ và $\boldsymbol{\Sigma}_k^{(t+1)}$ theo các công thức~\eqref{eq:mstep-Nk}--\eqref{eq:mstep-sigma}. Bộ tham số mới sau đó được chuyển cho E-step kế tiếp. Ba phép cập nhật tương ứng với tỷ lệ cụm, tâm cụm và độ phân tán có trọng số của cụm.
+
+Trong tính toán thực tế, nếu $N_k^{(t)}$ gần $0$ thì phép chia không ổn định và cần xử lý hoặc khởi tạo lại thành phần đó. Nếu hiệp phương sai suy biến, nghiệm nội miền ở trên không tồn tại; một biện pháp thường dùng là cộng $\varepsilon I_D$ vào ma trận hiệp phương sai, với $\varepsilon>0$ nhỏ. Đây là biện pháp ổn định số bổ sung, cần phân biệt với công thức M-step cực đại hóa likelihood thuần túy vừa suy dẫn.
