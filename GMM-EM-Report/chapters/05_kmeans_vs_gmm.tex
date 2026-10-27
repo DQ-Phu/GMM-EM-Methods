@@ -1,87 +1,180 @@
+% Premable dùng như file
+\begin{document}
+
 % ============================================================
-%  CHƯƠNG 5: SO SÁNH GMM VỚI K-MEANS
-%  Người viết: [Họ tên thành viên phụ trách]
+%  MỤC 5: SO SÁNH GMM-EM VÀ K-MEANS TRÊN DỮ LIỆU THỰC NGHIỆM
 % ============================================================
 
 \section{So sánh GMM với \texorpdfstring{$k$}{k}-means}
 \label{sec:kmeans_vs_gmm}
 
+Trong học máy không giám sát, $k$-means và Mô hình Hỗn hợp Gauss (GMM-EM) đại diện cho hai trường phái tiếp cận kinh điển: phân cụm dựa trên khoảng cách hình học phân hoạch và phân cụm dựa trên mô hình xác suất sinh (\textit{generative model}). Phần này hệ thống hóa mối quan hệ giải tích giữa hai phương pháp, chứng minh $k$-means là trường hợp suy biến giới hạn của GMM, đồng thời phân tích các phát hiện thực nghiệm trên tập dữ liệu dự đoán hành vi mua xe điện (\textit{EV Adoption Prediction}) với quy mô $N = 15.000$ quan sát và $D = 13$ đặc trưng.
+
 % -----------------------------------------------------------
 \subsection{Ôn lại thuật toán \texorpdfstring{$k$}{k}-means}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Mô tả bước gán nhãn (assignment) và cập nhật tâm cụm (update)
-%   - Hàm mục tiêu: minimize Σ_n Σ_k r_{nk} ||x_n - μ_k||²
-%   - Đây là phân cụm cứng (hard assignment): r_{nk} ∈ {0,1}
 
-% TODO: Viết nội dung ở đây
+Cho tập dữ liệu gồm $N$ quan sát đã được chuẩn hóa $\mathbf{X} = \{\mathbf{x}_1, \dots, \mathbf{x}_N\} \subset \mathbb{R}^D$. Thuật toán $k$-means phân hoạch không gian dữ liệu thành $K$ cụm rời rạc $\{C_1, \dots, C_K\}$ được đại diện bởi $K$ tâm cụm $\boldsymbol{\mu}_k \in \mathbb{R}^D$. 
 
+Đặc trưng cốt lõi của $k$-means là cơ chế \textbf{gán nhãn cứng} (\textit{hard assignment}): mỗi điểm dữ liệu $\mathbf{x}_n$ chỉ được gán dứt khoát vào duy nhất một cụm thông qua biến chỉ thị nhị phân $r_{nk} \in \{0, 1\}$ thỏa mãn ràng buộc $\sum_{k=1}^K r_{nk} = 1$:
+\begin{equation}
+    r_{nk} = \begin{cases}
+        1 & \text{nếu } \mathbf{x}_n \in C_k, \\
+        0 & \text{ngược lại.}
+    \end{cases}
+\end{equation}
+
+Hàm mục tiêu của thuật toán là tổng bình phương sai số nội cụm (\textit{Within-Cluster Sum of Squares} -- WCSS, thường gọi là \textit{Inertia}):
+\begin{equation}
+    J(\mathbf{R}, \{\boldsymbol{\mu}_k\}) = \sum_{n=1}^N \sum_{k=1}^K r_{nk} \|\mathbf{x}_n - \boldsymbol{\mu}_k\|^2. \label{eq:wcss}
+\end{equation}
+
+Thuật toán tối ưu hóa $J$ bằng phương pháp hạ tọa độ khối (\textit{coordinate descent}) qua hai bước lặp luân phiên:
+\begin{enumerate}
+    \item \textbf{Bước gán nhãn (Assignment step):} Cố định tập tâm cụm $\{\boldsymbol{\mu}_k^{(t)}\}$, gán từng điểm dữ liệu vào tâm cụm gần nhất theo khoảng cách Euclid:
+    \begin{equation}
+        r_{nk}^{(t)} = \begin{cases}
+            1 & \text{nếu } k = \argmin_{j} \|\mathbf{x}_n - \boldsymbol{\mu}_j^{(t)}\|^2, \\
+            0 & \text{ngược lại.}
+        \end{cases}
+    \end{equation}
+    \item \textbf{Bước cập nhật tâm (Update step):} Cố định $r_{nk}^{(t)}$, giải phương trình triệt tiêu gradient $\nabla_{\boldsymbol{\mu}_k} J = \mathbf{0}$ để tìm vị trí tâm mới là trọng tâm số học của cụm:
+    \begin{equation}
+        \boldsymbol{\mu}_k^{(t+1)} = \frac{\sum_{n=1}^N r_{nk}^{(t)} \mathbf{x}_n}{\sum_{n=1}^N r_{nk}^{(t)}} = \frac{1}{|C_k|} \sum_{\mathbf{x}_n \in C_k} \mathbf{x}_n.
+    \end{equation}
+\end{enumerate}
+Trên tập thực nghiệm xe điện với $K = 2$, thuật toán $k$-means hội tụ tại mức sai số nội cụm $\text{Inertia} = 163.232{,}01$.
 
 % -----------------------------------------------------------
 \subsection{\texorpdfstring{$k$}{k}-means là trường hợp giới hạn của GMM-EM}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Khi Σ_k = ε²I và ε → 0, responsibility γ_{nk} → r_{nk} ∈ {0,1}
-%   - M-step GMM trong giới hạn này trùng với bước cập nhật tâm k-means
-%   - Phân tích toán học: dẫn xuất từ công thức softmax của γ_{nk}
 
-% TODO: Viết nội dung ở đây
+Về mặt bản chất toán học, $k$-means chính là trường hợp suy biến giới hạn (\textit{deterministic limit}) của GMM-EM khi các thành phần Gauss có dạng hình cầu đẳng hướng và phương sai tiến dần về $0$.
 
+Xét mô hình GMM với $K$ thành phần có trọng số tiên nghiệm đều nhau $\pi_k = \frac{1}{K}$ và ma trận hiệp phương sai đẳng hướng chung $\boldsymbol{\Sigma}_k = \epsilon^2 \mathbf{I}$ ($\epsilon > 0$). Mật độ phân phối của thành phần thứ $k$ có dạng:
+\begin{equation}
+    \mathcal{N}(\mathbf{x}_n \mid \boldsymbol{\mu}_k, \epsilon^2 \mathbf{I}) = \frac{1}{(2\pi\epsilon^2)^{D/2}} \exp\left( -\frac{\|\mathbf{x}_n - \boldsymbol{\mu}_k\|^2}{2\epsilon^2} \right).
+\end{equation}
+
+\paragraph{1. Giới hạn của bước E:}
+Thay $\pi_k = \frac{1}{K}$ vào công thức trách nhiệm hậu nghiệm (\textit{responsibility}) $\gamma_{nk}$, các hằng số triệt tiêu nhau, để lại biểu thức hàm Softmax với tham số nhiệt độ $T = 2\epsilon^2$:
+\begin{equation}
+    \gamma_{nk} = \frac{\exp\left( -\frac{\|\mathbf{x}_n - \boldsymbol{\mu}_k\|^2}{2\epsilon^2} \right)}{\sum_{j=1}^K \exp\left( -\frac{\|\mathbf{x}_n - \boldsymbol{\mu}_j\|^2}{2\epsilon^2} \right)}. \label{eq:softmax_resp}
+\end{equation}
+Gọi $k^* = \argmin_j \|\mathbf{x}_n - \boldsymbol{\mu}_j\|^2$ là chỉ số cụm có tâm gần $\mathbf{x}_n$ nhất. Chia cả tử và mẫu của~\eqref{eq:softmax_resp} cho $\exp\left(-\frac{\|\mathbf{x}_n - \boldsymbol{\mu}_{k^*}\|^2}{2\epsilon^2}\right)$, ta thu được:
+\begin{equation}
+    \gamma_{nk} = \frac{\exp\left( -\frac{\|\mathbf{x}_n - \boldsymbol{\mu}_k\|^2 - \|\mathbf{x}_n - \boldsymbol{\mu}_{k^*}\|^2}{2\epsilon^2} \right)}{1 + \sum_{j \neq k^*} \exp\left( -\frac{\|\mathbf{x}_n - \boldsymbol{\mu}_j\|^2 - \|\mathbf{x}_n - \boldsymbol{\mu}_{k^*}\|^2}{2\epsilon^2} \right)}.
+\end{equation}
+Vì $\|\mathbf{x}_n - \boldsymbol{\mu}_j\|^2 - \|\mathbf{x}_n - \boldsymbol{\mu}_{k^*}\|^2 > 0$ với mọi $j \neq k^*$, khi lấy giới hạn "không nhiệt độ" $\epsilon \to 0$ (hay $\epsilon^2 \to 0^+$), các số hạng mũ ở mẫu số tiến nhanh về $0$. Do đó:
+\begin{equation}
+    \lim_{\epsilon \to 0} \gamma_{nk} = \begin{cases}
+        1 & \text{nếu } k = k^* = \argmin_j \|\mathbf{x}_n - \boldsymbol{\mu}_j\|^2, \\
+        0 & \text{ngược lại,}
+    \end{cases}
+    \quad \equiv r_{nk}.
+\end{equation}
+Như vậy, cơ chế gán mềm $\gamma_{nk} \in [0, 1]$ của GMM suy biến chính xác thành cơ chế gán cứng $r_{nk} \in \{0, 1\}$ của $k$-means.
+
+\paragraph{2. Giới hạn của bước M:}
+Công thức cập nhật tâm cụm của GMM ở bước M là:
+\begin{equation}
+    \boldsymbol{\mu}_k^{(t+1)} = \frac{\sum_{n=1}^N \gamma_{nk} \mathbf{x}_n}{N_k}, \quad \text{với } N_k = \sum_{n=1}^N \gamma_{nk}.
+\end{equation}
+Khi $\epsilon \to 0$, do $\gamma_{nk} \to r_{nk}$ và $N_k \to |C_k|$, công thức trên lập tức trở thành:
+\begin{equation}
+    \lim_{\epsilon \to 0} \boldsymbol{\mu}_k^{(t+1)} = \frac{\sum_{n=1}^N r_{nk} \mathbf{x}_n}{\sum_{n=1}^N r_{nk}} = \frac{1}{|C_k|} \sum_{\mathbf{x}_n \in C_k} \mathbf{x}_n,
+\end{equation}
+trùng khớp hoàn toàn với bước cập nhật tâm của thuật toán $k$-means. Đồng thời, việc cực đại hóa hàm log-likelihood khi $\epsilon \to 0$ tương đương với việc cực tiểu hóa hàm biến dạng $J$ trong~\eqref{eq:wcss}.
 
 % -----------------------------------------------------------
 \subsection{Phân cụm mềm vs. phân cụm cứng}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Ưu điểm phân cụm mềm (GMM): uncertainty, điểm nằm giữa cụm
-%   - Hạn chế phân cụm cứng (k-means): mất thông tin biên giới cụm
-%   - Ví dụ minh họa bằng hình vẽ hoặc dữ liệu 2D
 
-% TODO: Viết nội dung ở đây
+% -----------------------------------------------------------
+\subsection{Phân cụm mềm vs. phân cụm cứng}
+% -----------------------------------------------------------
 
-% Ví dụ chèn hình so sánh:
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=0.85\linewidth]{figures/hard_vs_soft.pdf}
-%   \caption{So sánh phân cụm cứng ($k$-means) và phân cụm mềm (GMM)}
-%   \label{fig:hard_vs_soft}
-% \end{figure}
+Sự khác biệt căn bản giữa hai phương pháp nằm ở cách thức xử lý mức độ bất định (\textit{uncertainty}):
+\begin{itemize}
+    \item \textbf{Phân cụm cứng ($k$-means):} Phân chia không gian bằng các siêu phẳng Voronoi tuyến tính nghiêm ngặt. Những điểm nằm sát biên (chẳng hạn xác suất thực tế là $51\%$ thuộc Cụm 1 và $49\%$ thuộc Cụm 2) vẫn bị ép buộc gán nhãn cứng vào Cụm 1. Điều này làm mất mát hoàn toàn thông tin về mức độ nghi ngờ tại vùng giáp ranh.
+    \item \textbf{Phân cụm mềm (GMM):} Biểu diễn quyền sở hữu cụm dưới dạng phân phối xác suất hậu nghiệm $[\gamma_{n1}, \dots, \gamma_{nK}]$. Độ bất định của từng quan sát $\mathbf{x}_n$ (với trường hợp $K = 2$) có thể định lượng trực tiếp qua chỉ số:
+    \begin{equation}
+        \text{Uncertainty}(\mathbf{x}_n) = 1 - 2\cdot \left|\gamma_{n1} - 0{,}5\right| \in [0, 1], \label{eq:uncertainty_metric}
+    \end{equation}
+    trong đó $\text{Uncertainty} = 1$ khi $\gamma_{n1} = 0{,}5$ (điểm nằm chính xác trên ranh giới phân định) và $\text{Uncertainty} = 0$ khi $\gamma_{n1} \in \{0, 1\}$ (điểm tuyệt đối tin cậy).
+\end{itemize}
 
+\paragraph{Hiện tượng cứng hóa xác suất trên tập dữ liệu xe điện:}
+Kết quả thực nghiệm trên $N = 15.000$ mẫu cho thấy một hiện tượng đặc thù: $100{,}0\%$ điểm dữ liệu có độ bất định thấp ($\text{Uncertainty} < 0{,}2$, tương đương độ tin cậy $> 80\%$) và $0{,}0\%$ điểm rơi vào vùng bất định cao ($\text{Uncertainty} > 0{,}8$). 
+
+Nguyên nhân xuất phát từ việc tập dữ liệu chứa $D = 13$ chiều đặc trưng (bao gồm cả các biến phân loại mã hóa như \texttt{Home\_Charging\_Possible}, \texttt{Subsidy\_Available} bên cạnh các biến liên tục như \texttt{Annual\_Income\_USD}, \texttt{Daily\_Commute\_km}). Khi chiếu dữ liệu xuống không gian 2 chiều bằng PCA, dữ liệu tách biệt thành các khối rõ rệt. Đồng thời, trong không gian $13$ chiều, chênh lệch khoảng cách Mahalanobis bậc hai $\Delta_{n1}^2 - \Delta_{n2}^2$ bị phóng đại qua hàm số mũ $\exp(-\frac{1}{2}\Delta^2)$, khiến tỷ số xác suất Softmax tự nhiên bị đẩy lệch tuyệt đối về $1{,}0$ hoặc $0{,}0$. Điều này cho thấy trong không gian nhiều chiều, GMM có xu hướng tự động đưa ra các quyết định phân cụm rất dứt khoát tương tự như phân cụm cứng.
 
 % -----------------------------------------------------------
 \subsection{Bảng tổng hợp so sánh}
 % -----------------------------------------------------------
-% Gợi ý nội dung: điền bảng so sánh các tiêu chí sau
 
-\begin{table}[H]
+Bảng~\ref{tab:kmeans_vs_gmm} đối chiếu toàn diện các khía cạnh toán học, độ phức tạp thuật toán và các chỉ số đo lường thực nghiệm thu được từ quá trình huấn luyện trên tập dữ liệu xe điện.
+
+\begin{table}[htbp]
   \centering
-  \caption{So sánh $k$-means và GMM-EM}
+  \small
+  \renewcommand{\arraystretch}{1.25}
+  \caption{So sánh toàn diện giữa $k$-means và GMM-EM}
   \label{tab:kmeans_vs_gmm}
   \begin{tabularx}{\linewidth}{lXX}
     \toprule
     \textbf{Tiêu chí}         & \textbf{$k$-means}          & \textbf{GMM-EM} \\
     \midrule
-    Loại phân cụm             & Cứng (hard)                 & Mềm (soft) \\
-    Hàm mục tiêu              & Tổng bình phương khoảng cách & Log-likelihood \\
-    Mô hình xác suất          & Không                       & Có \\
-    Hình dạng cụm             & Hypersphere (isotropic)     & Ellipsoid tùy ý \\
-    Độ phức tạp mỗi bước      & $O(NKD)$                    & $O(NKD^2 + KD^3)$ \\
-    Thông tin bất định        & Không                       & Có (qua $\gamma_{nk}$) \\
-    Nhạy với khởi tạo         & Cao                         & Cao \\
-    % TODO: bổ sung thêm hàng nếu cần
+    Loại phân cụm             & Cứng (hard assignment)      & Mềm (soft assignment) \\
+    Hàm mục tiêu              & Tổng bình phương sai số ($J$) & Log-likelihood ($\ell(\boldsymbol{\theta})$) \\
+    Mô hình xác suất          & Không                       & Có (Mô hình xác suất sinh) \\
+    Hình dạng cụm             & Hình cầu đẳng hướng         & Siêu elipxoit tùy ý ($\boldsymbol{\Sigma}_k$ đầy đủ) \\
+    Độ phức tạp mỗi bước      & $\mathcal{O}(NKD)$          & $\mathcal{O}(NKD^2 + KD^3)$ \\
+    Số tham số độc lập        & $KD = 26$ tham số           & $K(1 + D + \frac{D(D+1)}{2}) - 1 = 209$ tham số \\
+    Thông tin bất định        & Không                       & Có (qua trách nhiệm $\gamma_{nk}$) \\
+    Nhạy với khởi tạo         & Cao ($k$-means++ hỗ trợ)    & Rất cao (thường khởi tạo bằng $k$-means) \\
+    \midrule
+    \multicolumn{3}{l}{\textbf{Kết quả thực nghiệm trên tập dữ liệu xe điện ($N = 15.000, D = 13, K = 2$):}} \\
+    Trạng thái hội tụ         & $\text{Inertia} = 163.232{,}01$ & $6$ vòng lặp, $\text{Log-likelihood} = -112.260{,}46$ \\
+        Silhouette Score ($\uparrow$)     & $0{,}1649$                  & $\mathbf{0{,}1653}$ \\
+    Davies-Bouldin Index ($\downarrow$) & $\mathbf{2{,}2271}$       & $2{,}3286$ \\
+    ARI vs. Nhãn thật (\texttt{Will\_Buy\_EV}) & $\mathbf{-0{,}0057}$ & $-0{,}0285$ \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-% TODO: Thêm nhận xét/phân tích bảng trên
-
+\paragraph{Phân tích kết quả từ Bảng~\ref{tab:kmeans_vs_gmm}:}
+\begin{itemize}
+    \item \textbf{Về độ phức tạp và tham số:} $k$-means chỉ cần tối ưu $KD = 2 \times 13 = 26$ tham số tọa độ tâm. Ngược lại, GMM với ma trận hiệp phương sai đầy đủ (\texttt{covariance\_type='full'}) phải ước lượng đến $209$ tham số tự do, đòi hỏi chi phí tính toán $\mathcal{O}(NKD^2 + KD^3)$ cho các phép nhân ma trận và nghịch đảo ma trận trong không gian $13$ chiều.
+    \item \textbf{Sự đánh đổi giữa Silhouette và Davies-Bouldin:} GMM-EM đạt điểm Silhouette cao hơn ($0{,}1653$ so với $0{,}1649$), phản ánh khả năng bao quát dữ liệu tốt hơn khi cho phép các cụm co giãn theo dạng elipxoit. Tuy nhiên, $k$-means lại có chỉ số Davies-Bouldin tốt hơn ($2{,}2271$ so với $2{,}3286$). Điều này là tất yếu vì Davies-Bouldin sử dụng khoảng cách Euclid để đo độ phân tán cụm, vốn có xu hướng thiên vị các cụm hình cầu đẳng hướng của $k$-means.
+    \item \textbf{Chỉ số ARI tiệm cận 0:} Cả hai phương pháp đều cho chỉ số ARI âm nhẹ (xấp xỉ $0$) khi so sánh với nhãn mục tiêu \texttt{Will\_Buy\_EV}. Điều này giải thích bởi tỷ lệ mất cân bằng dữ liệu ($82{,}75\%$ nhãn $0$ so với $17{,}25\%$ nhãn $1$) và bản chất của học không giám sát là gom cụm dựa trên mật độ hình học tự nhiên trong không gian $13$ chiều, chứ không thể tự khớp với ranh giới quyết định của bài toán phân loại có giám sát.
+\end{itemize}
 
 % -----------------------------------------------------------
 \subsection{Khi nào dùng GMM, khi nào dùng \texorpdfstring{$k$}{k}-means?}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Dữ liệu có cụm hình ellipsoid → GMM
-%   - Cần xác suất thuộc cụm (uncertainty) → GMM
-%   - Tập dữ liệu lớn, cần tốc độ → k-means (hoặc mini-batch k-means)
-%   - Số chiều rất cao → cân nhắc cả hai, regularize Σ_k
 
-% TODO: Viết nội dung ở đây
+Dựa trên phân tích giải tích và bằng chứng thực nghiệm, chiến lược lựa chọn mô hình được đề xuất như sau:
+
+\begin{enumerate}
+    \item \textbf{Ưu tiên sử dụng GMM khi:}
+    \begin{itemize}
+        \item Cụm dữ liệu có dạng hình siêu elipxoit và tồn tại tương quan mạnh giữa các biến liên tục (chẳng hạn giữa thu nhập \texttt{Annual\_Income\_USD} và quãng đường \texttt{Daily\_Commute\_km}). Ma trận hiệp phương sai đầy đủ $\boldsymbol{\Sigma}_k$ cho phép mô hình xoay linh hoạt theo các trục phân tán chính.
+        \item Ứng dụng thực tế đòi hỏi thông tin về độ bất định (như việc nhận diện nhóm khách hàng đắn đo ở ranh giới quyết định để phân bổ ngân sách marketing hướng đích).
+        \item Quy mô kích thước và mật độ giữa các cụm có sự chênh lệch lớn (nhờ GMM tự học trọng số trộn $\pi_k$).
+    \end{itemize}
+
+    \item \textbf{Ưu tiên sử dụng $k$-means khi:}
+    \begin{itemize}
+        \item Tập dữ liệu có quy mô rất lớn ($N \ge 10^5$), đòi hỏi tốc độ xử lý nhanh và tiết kiệm tài nguyên bộ nhớ. Khi đó, độ phức tạp tuyến tính $\mathcal{O}(NKD)$ của $k$-means (hoặc Mini-Batch $k$-means) vượt trội hơn hẳn so với chi phí tính toán ma trận của GMM.
+        \item Các biến đặc trưng độc lập và có phương sai đồng đều sau chuẩn hóa, tạo nên các cụm có hình dạng gần như hình cầu.
+        \item Cần một phương pháp phân vùng dữ liệu thô ban đầu để hỗ trợ các tác vụ xử lý hạ nguồn.
+    \end{itemize}
+
+    \item \textbf{Xử lý khi số chiều $D$ rất cao và giải pháp lai (Hybrid Strategy):}
+    \begin{itemize}
+        \item Trong không gian số chiều lớn ($D \gg 1$), ma trận hiệp phương sai $\boldsymbol{\Sigma}_k$ của GMM rất dễ rơi vào điểm kỳ dị giải tích ($|\boldsymbol{\Sigma}_k| \to 0$). Trong tình huống này, giải pháp tối ưu là áp dụng kỹ thuật điều chuẩn đường chéo ma trận hiệp phương sai (\texttt{reg\_covar}) hoặc chuyển sang cấu hình hiệp phương sai đường chéo (\texttt{covariance\_type='diag'}).
+        \item \textbf{Quy trình phối hợp chuẩn:} Trong thực tế (tương ứng với tham số mặc định \texttt{init\_params='kmeans'} của thư viện \texttt{scikit-learn}), cách tiếp cận tối ưu nhất là sử dụng $k$-means để tìm các tâm cụm ban đầu $\boldsymbol{\mu}_k^{(0)}$, sau đó dùng các tâm này làm điểm khởi tạo cho GMM-EM. Sự kết hợp này giúp thuật toán EM hội tụ cực kỳ nhanh chóng (như thực nghiệm đã chỉ ra: GMM chỉ mất đúng $6$ vòng lặp để hội tụ) và triệt tiêu nguy cơ rơi vào các điểm cực trị địa phương suy biến.
+    \end{itemize}
+\end{enumerate}
+\end{document}
