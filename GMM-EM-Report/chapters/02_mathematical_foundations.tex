@@ -1,64 +1,300 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[T5]{fontenc}
+\usepackage{lmodern}
+
+\usepackage{tabularx}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\onehalfspacing 
+
+\usepackage{amsmath,amssymb,amsfonts,bm,mathtools}
+\usepackage{booktabs}
+
+\usepackage{xcolor}
+\usepackage[colorlinks=true, linkcolor=blue!70!black, citecolor=blue!70!black, urlcolor=blue!70!black]{hyperref}
+
+% ------------------------------------------------------------
+%  Macro toán học tắt 
+% ------------------------------------------------------------
+% Vectors & matrices
+\newcommand{\vx}{\mathbf{x}}
+\newcommand{\vu}{\mathbf{u}}
+\newcommand{\vz}{\mathbf{z}}
+\newcommand{\vmu}{\boldsymbol{\mu}}
+\newcommand{\vSigma}{\boldsymbol{\Sigma}}
+\newcommand{\vpi}{\boldsymbol{\pi}}
+\newcommand{\vtheta}{\boldsymbol{\theta}}
+\newcommand{\vI}{\mathbf{I}}
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bY}{\mathbf{Y}}
+\newcommand{\bZ}{\mathbf{Z}}
+\newcommand{\bLambda}{\boldsymbol{\Lambda}}
+
+% Distributions & Expectations
+\newcommand{\Normal}{\mathcal{N}}
+\newcommand{\Exp}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+
+% Operators
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\Var}{Var}
+\DeclareMathOperator{\Cov}{Cov}
+
+% GMM-specific
+\newcommand{\responsibility}{\gamma}
+\newcommand{\Nk}{N_k}
+
+\begin{document}
+
 % ============================================================
 %  CHƯƠNG 2: NỀN TẢNG TOÁN HỌC
-%  Người viết: [Họ tên thành viên phụ trách]
 % ============================================================
-
 \section{Nền tảng toán học}
 \label{sec:math_foundations}
 
+Trong các bài toán phân cụm dữ liệu, phương pháp phân cụm cứng như $K$-Means bộc lộ sự hạn chế khi các cụm có độ chồng lấn hoặc có dạng hình học dị hướng. Nhằm mô hình hóa tính bất định của phép gán nhãn, Mô hình Hỗn hợp Gauss (\textit{Gaussian Mixture Model} -- GMM) được sử dụng để xấp xỉ phân phối xác suất thực nghiệm thông qua tổ hợp tuyến tính của các phân phối chuẩn thành phần. 
+
 % -----------------------------------------------------------
 \subsection{Biến ngẫu nhiên và xác suất có điều kiện}
+\label{subsec:prob_basics}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Định nghĩa biến ngẫu nhiên liên tục, hàm mật độ xác suất
-%   - Quy tắc nhân xác suất: p(x,z) = p(x|z)p(z)
-%   - Định lý Bayes: p(z|x) = p(x|z)p(z) / p(x)
-%   - Xác suất biên: p(x) = ∑_z p(x,z) hoặc ∫ p(x,z)dz
 
-% TODO: Viết nội dung ở đây
+Xét biến ngẫu nhiên liên tục nhiều chiều $\vx \in \R^D$ và biến ngẫu nhiên rời rạc $z \in \{1, \dots, K\}$. Hàm mật độ xác suất (\textit{Probability Density Function} -- PDF) $p(\vx)$ thỏa mãn điều kiện không âm $p(\vx) \ge 0$ và có tích phân chuẩn hóa trên toàn không gian:
+\begin{equation}
+    \int_{\R^D} p(\vx)\, d\vx = 1
+\end{equation}
 
+Phân phối đồng thời của quan sát $\vx$ và biến trạng thái $z$ tuân theo quy tắc nhân xác suất (\textit{product rule}):
+\begin{equation}
+    p(\vx, z) = p(\vx \mid z) p(z)
+\end{equation}
+trong đó $p(z)$ là phân phối tiên nghiệm (\textit{prior}) của $z$, và $p(\vx \mid z)$ là mật độ có điều kiện của $\vx$ khi biết trạng thái $z$.
+
+Khi biến $z$ không quan sát được trực tiếp, phân phối biên (\textit{marginal probability}) của $\vx$ thu được bằng cách lấy tổng trên toàn bộ không gian trạng thái của $z$:
+\begin{equation}
+    p(\vx) = \sum_{k=1}^K p(\vx, z=k) = \sum_{k=1}^K p(z=k) p(\vx \mid z=k)
+\end{equation}
+
+Khi đã ghi nhận quan sát thực nghiệm $\vx$, phân phối hậu nghiệm (\textit{posterior probability}) của biến trạng thái $z$ được xác định thông qua định lý Bayes:
+\begin{equation}
+    p(z=k \mid \vx) = \frac{p(\vx, z=k)}{p(\vx)} = \frac{p(z=k) p(\vx \mid z=k)}{\sum_{j=1}^K p(z=j) p(\vx \mid z=j)} \label{eq:bayes_rule}
+\end{equation}
+Trong mô hình GMM, xác suất hậu nghiệm này biểu diễn mức độ thuộc về cụm $k$ của điểm dữ liệu $\vx$, đóng vai trò then chốt trong việc gán cụm mềm.
 
 % -----------------------------------------------------------
 \subsection{Phân phối Gaussian đa biến}
+\label{subsec:multivariate_gaussian}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Định nghĩa N(x | μ, Σ), công thức mật độ
-%   - Ý nghĩa của vector trung bình μ và ma trận hiệp phương sai Σ
-%   - Tính chất: đường đồng mức ellipsoid, phân phối biên vẫn là Gaussian
-%   - Trường hợp đặc biệt: Σ = σ²I (isotropic), Σ = diag(σ₁²,…,σ_D²)
 
-% TODO: Viết nội dung ở đây
+\subsubsection{Hàm mật độ xác suất và khoảng cách Mahalanobis}
 
+Xét biến ngẫu nhiên liên tục $X \in \R$. Phân phối chuẩn đơn biến với kỳ vọng $\mu$ và phương sai $\sigma^2$, ký hiệu $X \sim \Normal(\mu, \sigma^2)$, có hàm mật độ xác suất xác định bởi:
+\begin{equation}
+    p(x \mid \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{(x - \mu)^2}{2\sigma^2} \right)
+\end{equation}
+
+Khi mở rộng lên không gian $D$ chiều, quan sát được biểu diễn dưới dạng vector cột $\vx = [x_1, x_2, \dots, x_D]^\top \in \R^D$. Phân phối Gauss đa biến, ký hiệu $\vx \sim \Normal(\vmu, \vSigma)$, có hàm mật độ đồng thời dạng:
+\begin{equation}
+    p(\vx \mid \vmu, \vSigma) = \frac{1}{(2\pi)^{D/2} |\vSigma|^{1/2}} \exp\left( -\frac{1}{2} (\vx - \vmu)^\top \vSigma^{-1} (\vx - \vmu) \right) \label{eq:multivariate_pdf}
+\end{equation}
+trong đó $|\vSigma|$ là định thức của ma trận hiệp phương sai $\vSigma$. Đại lượng bậc hai trong hàm mũ:
+\begin{equation}
+    \Delta^2 = (\vx - \vmu)^\top \vSigma^{-1} (\vx - \vmu)
+\end{equation}
+biểu diễn bình phương khoảng cách Mahalanobis giữa $\vx$ và tâm $\vmu$. Khác với khoảng cách Euclid, khoảng cách Mahalanobis tính đến sự biến thiên nội tại trên từng chiều cũng như mối tương quan tuyến tính giữa các trục tọa độ thông qua ma trận nghịch đảo $\vSigma^{-1}$.
+
+\subsubsection{Đặc tính hình học của vector kỳ vọng và ma trận hiệp phương sai}
+
+Hai tham số đặc trưng của phân phối là vector kỳ vọng $\vmu \in \R^D$ và ma trận hiệp phương sai $\vSigma \in \R^{D \times D}$:
+\begin{align}
+    \vmu &= \Exp[\vx] = \begin{bmatrix} \Exp[x_1] & \Exp[x_2] & \cdots & \Exp[x_D] \end{bmatrix}^\top \\
+    \vSigma &= \Exp\left[ (\vx - \vmu)(\vx - \vmu)^\top \right]
+\end{align}
+Đường chéo chính của $\vSigma$ chứa phương sai riêng $\Sigma_{jj} = \Var(x_j)$, và các phần tử ngoài đường chéo là hiệp phương sai giữa các cặp biến $\Sigma_{jk} = \Cov(x_j, x_k)$.
+
+Ma trận hiệp phương sai sở hữu các tính chất hình học quan trọng:
+\begin{enumerate}
+    \item \textbf{Tính đối xứng và xác định dương:} $\vSigma = \vSigma^\top$ và $\vu^\top \vSigma \vu > 0, \forall \vu \neq \mathbf{0}$ (với giả thiết phân phối không suy biến). Điều này đảm bảo $\vSigma^{-1}$ luôn tồn tại và $\Delta \ge 0$.
+    \item \textbf{Mặt đẳng mật độ dạng siêu elipxoit:} Phương trình $p(\vx \mid \vmu, \vSigma) = \text{const}$ tương đương với $\Delta^2 = c^2$. Phân tích phổ của $\vSigma$ cho dạng $\vSigma = \mathbf{U} \bLambda \mathbf{U}^\top$, với $\mathbf{U} = [\vu_1, \dots, \vu_D]$ là ma trận trực giao chứa các vector riêng, và $\bLambda = \diag(\lambda_1, \dots, \lambda_D)$ chứa các giá trị riêng dương. Trục của các siêu elipxoit đẳng mật độ có phương trùng với các vector riêng $\vu_d$ và độ dài bán trục tỉ lệ với $\sqrt{\lambda_d}$.
+    \item \textbf{Các dạng cấu trúc đặc biệt:} Tùy thuộc vào giả thiết mô hình, $\vSigma$ có thể ở dạng ma trận đầy đủ (\textit{full covariance}) với $D(D+1)/2$ tham số tự do; dạng ma trận đường chéo $\vSigma = \diag(\sigma_1^2, \dots, \sigma_D^2)$ với các trục elip song song với các trục tọa độ; hoặc dạng đẳng hướng (\textit{isotropic}) $\vSigma = \sigma^2 \vI$ khi mặt đẳng mật độ suy biến thành siêu hình cầu.
+\end{enumerate}
 
 % -----------------------------------------------------------
 \subsection{Log-likelihood và ước lượng hợp lý cực đại (MLE)}
+\label{subsec:mle}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Hàm likelihood L(θ; X) và log-likelihood ℓ(θ)
-%   - Nguyên lý MLE: tìm θ* = argmax ℓ(θ)
-%   - Vì sao dùng log? (tránh underflow, biến tích thành tổng)
-%   - Ví dụ: MLE cho Gaussian đơn biến
 
-% TODO: Viết nội dung ở đây
+\subsubsection{Hàm hợp lý và log-hợp lý}
 
+Giả sử tập dữ liệu $\bX = \{\vx_1, \dots, \vx_N\}$ gồm $N$ quan sát độc lập cùng phân phối (i.i.d.). Hàm hợp lý tương ứng với bộ tham số $\vtheta$ được định nghĩa bởi:
+\begin{equation}
+    L(\vtheta ; \bX) = p(\bX \mid \vtheta) = \prod_{i=1}^{N} p(\vx_i \mid \vtheta)
+\end{equation}
+
+Nhằm thuận tiện cho việc giải tích và tránh lỗi tràn số dưới trong tính toán số học, ta tối ưu hóa hàm log-hợp lý:
+\begin{equation}
+    \ell(\vtheta ; \bX) = \ln L(\vtheta ; \bX) = \sum_{i=1}^{N} \ln p(\vx_i \mid \vtheta)
+\end{equation}
+Vì hàm $\ln(\cdot)$ đồng biến nghiêm ngặt, nghiệm của bài toán cực đại hóa $\ell(\vtheta)$ bảo toàn nghiệm của $L(\vtheta)$.
+
+Với trường hợp phân phối Gauss đơn lẻ $\vtheta = \{\vmu, \vSigma\}$:
+\begin{equation}
+    \ell(\vmu, \vSigma) = -\frac{ND}{2}\ln(2\pi) - \frac{N}{2}\ln|\vSigma| - \frac{1}{2}\sum_{i=1}^N (\vx_i - \vmu)^\top \vSigma^{-1} (\vx_i - \vmu) \label{eq:single_gauss_loglik}
+\end{equation}
+Giải hệ phương trình đạo hàm riêng $\nabla_{\vmu} \ell = \mathbf{0}$ và $\nabla_{\vSigma^{-1}} \ell = \mathbf{0}$ cho nghiệm giải tích tường minh quen thuộc:
+\begin{align}
+    \hat{\vmu}_{\text{MLE}} &= \frac{1}{N}\sum_{i=1}^N \vx_i \\
+    \hat{\vSigma}_{\text{MLE}} &= \frac{1}{N}\sum_{i=1}^N (\vx_i - \hat{\vmu}_{\text{MLE}})(\vx_i - \hat{\vmu}_{\text{MLE}})^\top
+\end{align}
+
+\subsubsection{Khó khăn khi áp dụng trực tiếp MLE cho mô hình hỗn hợp}
+
+Mật độ của mô hình GMM gồm $K$ thành phần có dạng:
+\begin{equation}
+    p(\vx_i \mid \vtheta) = \sum_{k=1}^K \pi_k \Normal(\vx_i \mid \vmu_k, \vSigma_k)
+\end{equation}
+với hệ số trộn thỏa mãn $\sum_{k=1}^K \pi_k = 1$ và $\pi_k \ge 0$. Bộ tham số cần ước lượng là $\vtheta = \{\pi_k, \vmu_k, \vSigma_k\}_{k=1}^K$. Khi đó, hàm log-hợp lý cho toàn bộ dữ liệu có dạng:
+\begin{equation}
+    \ell(\vtheta ; \bX) = \sum_{i=1}^{N} \ln \left( \sum_{k=1}^{K} \pi_k \Normal(\vx_i \mid \vmu_k, \vSigma_k) \right) \label{eq:gmm_log_likelihood}
+\end{equation}
+
+Khác với phân phối Gauss đơn lẻ, việc tối ưu hóa trực tiếp~\eqref{eq:gmm_log_likelihood} gặp các trở ngại giải tích và tính toán cơ bản:
+
+\paragraph{Vướng mắc giải tích do dấu tổng trong hàm logarit.}
+Toán tử $\ln$ tác động lên một tổng làm triệt tiêu khả năng đơn giản hóa trực tiếp với hàm mũ của phân phối Gauss. Đạo hàm riêng theo $\vmu_k$:
+\begin{equation}
+    \frac{\partial \ell}{\partial \vmu_k} = \sum_{i=1}^N \underbrace{\left[ \frac{\pi_k \Normal(\vx_i \mid \vmu_k, \vSigma_k)}{\sum_{j=1}^K \pi_j \Normal(\vx_i \mid \vmu_j, \vSigma_j)} \right]}_{\responsibility_{ik}} \vSigma_k^{-1}(\vx_i - \vmu_k) = \mathbf{0}
+\end{equation}
+Điều kiện trên cho thấy nghiệm của $\vmu_k$ phụ thuộc phi tuyến vào trọng số hậu nghiệm $\responsibility_{ik}$, vốn chứa lại chính $\vmu_k$ và các tham số của các thành phần khác. Do đó, hệ phương trình đạo hàm không có nghiệm dạng đóng.
+
+\paragraph{Tính phi lồi và tính hoán vị nhãn (label switching).}
+Hàm log-likelihood của GMM không có tính chất lồi; không gian mục tiêu tồn tại nhiều cực đại cục bộ. Ngoài ra, việc hoán vị chỉ số giữa $K$ cụm tạo ra $K!$ cấu hình tham số khác nhau nhưng cùng mang một giá trị likelihood tương đương.
+
+\paragraph{Sự xuất hiện của các điểm kỳ dị (singularities).}
+Nếu tâm $\vmu_k$ của một thành phần trùng với điểm dữ liệu $\vx_n$, xét trường hợp $\vSigma_k = \sigma_k^2 \vI$, khi phương sai $\sigma_k^2 \to 0$, mật độ tại điểm này tiến tới vô cùng:
+\begin{equation}
+    \Normal(\vx_n \mid \vx_n, \sigma_k^2 \vI) = \frac{1}{(2\pi)^{D/2} \sigma_k^D} \xrightarrow[\sigma_k \to 0]{} +\infty \implies \ell(\vtheta) \to +\infty
+\end{equation}
+Hàm log-likelihood do đó không bị chặn trên trong không gian tham số liên tục. Việc tối ưu hóa gradient thông thường có thể dẫn đến các nghiệm suy biến này thay vì điểm cực trị mang ý nghĩa thống kê.
 
 % -----------------------------------------------------------
 \subsection{Bất đẳng thức Jensen}
+\label{subsec:jensen}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Phát biểu: f hàm lồi ⟹ f(E[X]) ≤ E[f(X)]
-%   - Trường hợp hàm lõm (log): E[log X] ≤ log E[X]
-%   - Vai trò trong chứng minh hội tụ của EM (ELBO ≤ log p(x|θ))
 
-% TODO: Viết nội dung ở đây
+Cho hàm số $f$ lồi trên một khoảng $I \subseteq \R$ và biến ngẫu nhiên $X$ nhận giá trị trong $I$. Bất đẳng thức Jensen phát biểu rằng:
+\begin{equation}
+    f(\Exp[X]) \le \Exp[f(X)] \label{eq:jensen_convex}
+\end{equation}
+Nếu $f$ là hàm lõm, bất đẳng thức đổi chiều: $f(\Exp[X]) \ge \Exp[f(X)]$. 
 
+Xét hàm số $f(t) = \ln(t)$ với $t > 0$. Vì đạo hàm cấp hai $f''(t) = -1/t^2 < 0, \forall t > 0$, hàm logarit tự nhiên là một hàm lõm nghiêm ngặt trên toàn miền xác định. Do đó:
+\begin{equation}
+    \ln \Exp[X] \ge \Exp[\ln X] \label{eq:jensen_log}
+\end{equation}
+Dấu đẳng thức xảy ra khi và chỉ khi biến ngẫu nhiên $X$ là hằng số hầu chắc chắn ($X = \Exp[X]$ với xác suất bằng 1).
+
+Trong lý thuyết biến tiềm ẩn, bất đẳng thức Jensen là công cụ toán học để thiết lập Chặn dưới Bằng chứng (\textit{Evidence Lower Bound} -- ELBO). Xét phân phối tùy ý $q(\vz)$ trên không gian biến ẩn $\vz$:
+\begin{align}
+    \ln p(\vx \mid \vtheta) &= \ln \sum_{\vz} q(\vz) \left[ \frac{p(\vx, \vz \mid \vtheta)}{q(\vz)} \right] \\
+    &\ge \sum_{\vz} q(\vz) \ln \left[ \frac{p(\vx, \vz \mid \vtheta)}{q(\vz)} \right] \eqqcolon \mathcal{L}(q, \vtheta) \label{eq:elbo}
+\end{align}
+Bằng cách tối ưu hóa hàm chặn dưới $\mathcal{L}(q, \vtheta)$ thay cho hàm log-likelihood quan sát trực tiếp, bất đẳng thức Jensen bảo đảm quá trình lặp của thuật toán không bao giờ làm giảm hàm mục tiêu thực tế.
 
 % -----------------------------------------------------------
 \subsection{Kỳ vọng của biến ẩn và hàm Q}
+\label{subsec:latent_and_q_func}
 % -----------------------------------------------------------
-% Gợi ý nội dung:
-%   - Dữ liệu đầy đủ (complete data) vs. dữ liệu quan sát (observed data)
-%   - Định nghĩa hàm Q(θ | θ^(t)) = E_{Z|X,θ^(t)}[log p(X,Z|θ)]
-%   - Đây là nền tảng lý thuyết để hiểu EM ở chương tiếp theo
 
-% TODO: Viết nội dung ở đây
+\subsubsection{Biểu diễn dữ liệu qua biến ẩn}
+
+Về mặt mô hình hóa, nếu nguồn gốc phát sinh của từng điểm dữ liệu $\vx_i$ được biết trước, bài toán hỗn hợp sẽ phân rã thành $K$ bài toán ước lượng độc lập. Ta đưa vào biến chỉ định cụm $\vz_i = [z_{i1}, z_{i2}, \dots, z_{iK}]^\top \in \{0, 1\}^K$ dưới dạng vector one-hot:
+\begin{equation}
+    z_{ik} \in \{0, 1\} \quad \text{và} \quad \sum_{k=1}^K z_{ik} = 1
+\end{equation}
+trong đó $z_{ik} = 1$ nếu điểm $\vx_i$ được sinh ra từ thành phần Gauss thứ $k$.
+
+Phân phối tiên nghiệm của biến ẩn tuân theo phân phối phân loại (\textit{Categorical}):
+\begin{equation}
+    p(z_{ik} = 1) = \pi_k \implies p(\vz_i) = \prod_{k=1}^K \pi_k^{z_{ik}}
+\end{equation}
+Phân phối có điều kiện của quan sát khi biết biến ẩn là:
+\begin{equation}
+    p(\vx_i \mid \vz_i) = \prod_{k=1}^K \left[ \Normal(\vx_i \mid \vmu_k, \vSigma_k) \right]^{z_{ik}}
+\end{equation}
+
+Tích phân biên trên không gian biến ẩn thu hồi lại mật độ hỗn hợp ban đầu:
+\begin{equation}
+    p(\vx_i) = \sum_{\vz_i} p(\vx_i, \vz_i) = \sum_{k=1}^K \pi_k \Normal(\vx_i \mid \vmu_k, \vSigma_k)
+\end{equation}
+
+\subsubsection{Dữ liệu hoàn chỉnh và dữ liệu chưa hoàn chỉnh}
+
+Lý thuyết ước lượng phân biệt hai không gian mẫu:
+\begin{itemize}
+    \item \textbf{Dữ liệu chưa hoàn chỉnh (Incomplete Data):} Tập quan sát thực tế $\bX = \{\vx_1, \dots, \vx_N\}$, thiếu vắng thông tin về nhãn cụm.
+    \item \textbf{Dữ liệu hoàn chỉnh (Complete Data):} Tập hợp cặp quan sát và biến ẩn $\bY = \{(\vx_1, \vz_1), \dots, (\vx_N, \vz_N)\}$.
+\end{itemize}
+
+Xác suất đồng thời của dữ liệu hoàn chỉnh có dạng:
+\begin{equation}
+    p(\bX, \bZ \mid \vtheta) = \prod_{i=1}^N \prod_{k=1}^K \left[ \pi_k \Normal(\vx_i \mid \vmu_k, \vSigma_k) \right]^{z_{ik}}
+\end{equation}
+Log-hợp lý của dữ liệu hoàn chỉnh, ký hiệu $\ell_c(\vtheta)$, trở thành:
+\begin{equation}
+    \ell_c(\vtheta ; \bX, \bZ) = \sum_{i=1}^N \sum_{k=1}^K z_{ik} \left[ \ln \pi_k + \ln \Normal(\vx_i \mid \vmu_k, \vSigma_k) \right] \label{eq:complete_likelihood}
+\end{equation}
+
+Biểu thức~\eqref{eq:complete_likelihood} thuận lợi hơn về mặt giải tích so với~\eqref{eq:gmm_log_likelihood} do toán tử logarit tác động trực tiếp lên hàm Gauss mà không bị ngăn cách bởi dấu tổng ngoài.
+
+\begin{table}[htbp]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\caption{So sánh giữa mô hình dữ liệu chưa hoàn chỉnh và dữ liệu hoàn chỉnh trong GMM.}
+\label{tab:complete_incomplete}
+\begin{tabularx}{\textwidth}{p{3.5cm}XX}
+\toprule
+\textbf{Đặc tính} & \textbf{Dữ liệu chưa hoàn chỉnh ($\bX$)} & \textbf{Dữ liệu hoàn chỉnh ($\bX, \bZ$)} \\
+\midrule
+Thành phần quan sát & Quan sát thực tế $\vx_i$ & Cặp dữ liệu $(\vx_i, \vz_i)$ \\
+Hàm Log-Likelihood & $\sum\limits_{i=1}^N \ln \left( \sum\limits_{k=1}^K \pi_k \Normal_k(\vx_i) \right)$ & $\sum\limits_{i=1}^N \sum\limits_{k=1}^K z_{ik} \left[ \ln \pi_k + \ln \Normal_k(\vx_i) \right]$ \\
+Dạng giải tích & Dấu tổng nằm trong toán tử $\ln$ & Phép logarit tác động trực tiếp vào hàm mũ \\
+Điều kiện tìm nghiệm & Không có nghiệm đóng cho cực trị & Đạo hàm trực tiếp cho nghiệm giải tích đóng \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Cơ chế thiết lập hàm mục tiêu Q}
+
+Do $\bZ$ không quan sát được, thuật toán EM tối ưu hàm mục tiêu gián tiếp thông qua kỳ vọng có điều kiện của log-likelihood dữ liệu hoàn chỉnh, dựa trên ước lượng tham số tại bước lặp hiện tại $\vtheta^{(t)}$:
+\begin{equation}
+    Q(\vtheta, \vtheta^{(t)}) = \Exp_{\bZ \mid \bX, \vtheta^{(t)}} \left[ \ell_c(\vtheta ; \bX, \bZ) \right] = \sum_{\bZ} p(\bZ \mid \bX, \vtheta^{(t)}) \ell_c(\vtheta ; \bX, \bZ)
+\end{equation}
+
+Do tính tuyến tính của kỳ vọng đối với biến $z_{ik}$, hàm $Q$ được viết lại thành:
+\begin{equation}
+    Q(\vtheta, \vtheta^{(t)}) = \sum_{i=1}^N \sum_{k=1}^K \responsibility_{ik}^{(t)} \left[ \ln \pi_k + \ln \Normal(\vx_i \mid \vmu_k, \vSigma_k) \right] \label{eq:q_explicit}
+\end{equation}
+trong đó $\responsibility_{ik}^{(t)}$ là xác suất hậu nghiệm (thường gọi là trách nhiệm -- \textit{responsibility}) rằng điểm $\vx_i$ thuộc về thành phần $k$:
+\begin{equation}
+    \responsibility_{ik}^{(t)} \coloneqq \Exp[z_{ik} \mid \vx_i, \vtheta^{(t)}] = p(z_{ik} = 1 \mid \vx_i, \vtheta^{(t)}) = \frac{\pi_k^{(t)} \Normal(\vx_i \mid \vmu_k^{(t)}, \vSigma_k^{(t)})}{\sum_{j=1}^K \pi_j^{(t)} \Normal(\vx_i \mid \vmu_j^{(t)}, \vSigma_j^{(t)})}
+\end{equation}
+
+Cực đại hóa hàm $Q$ đối với $\vtheta$ bằng cách áp dụng nhân tử Lagrange với ràng buộc $\sum_{k=1}^K \pi_k = 1$ cho các công thức cập nhật dạng đóng:
+\begin{align}
+    \Nk^{(t+1)} &= \sum_{i=1}^N \responsibility_{ik}^{(t)} \label{eq:effective_n} \\
+    \vmu_k^{(t+1)} &= \frac{1}{\Nk^{(t+1)}} \sum_{i=1}^N \responsibility_{ik}^{(t)} \vx_i \label{eq:mu_update} \\
+    \vSigma_k^{(t+1)} &= \frac{1}{\Nk^{(t+1)}} \sum_{i=1}^N \responsibility_{ik}^{(t)} (\vx_i - \vmu_k^{(t+1)})(\vx_i - \vmu_k^{(t+1)})^\top \label{eq:sigma_update} \\
+    \pi_k^{(t+1)} &= \frac{\Nk^{(t+1)}}{N} \label{eq:pi_update}
+\end{align}
+Ở đây, $\Nk^{(t+1)}$ biểu thị số lượng mẫu hiệu dụng được phân bổ vào cụm $k$. Việc thiết lập hàm phụ trợ $Q$ và tính toán $\responsibility_{ik}^{(t)}$ trên đây là nền tảng giải tích đầy đủ để vận hành thuật toán EM ở chương tiếp theo.
+
+\end{document}
