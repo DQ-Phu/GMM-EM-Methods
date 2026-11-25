@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thuật toán Expectation-Maximization (EM) - GMM & EM Methods</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Be Vietnam Pro & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for crisp LaTeX mathematical rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Highlight.js for clean syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            pastel: {
+              bg: '#F8FAFC',
+              surface: '#FFFFFF',
+              tint: '#EFF6FF',
+              soft: '#DBEAFE',
+              border: '#BFDBFE',
+              accent: '#2563EB',
+              sky: '#0284C7',
+              ink: '#0F172A',
+              muted: '#475569'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Be Vietnam Pro', sans-serif;
+      background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 55%, #E0F2FE 100%);
+      color: #0F172A;
+      overflow-x: hidden;
+    }
+
+    /* Slide transition effects */
+    .slide-container {
+      display: none;
+      animation: slideFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .slide-container.active {
+      display: flex;
+    }
+
+    @keyframes slideFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.995);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Custom subtle scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #93C5FD;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3B82F6;
+    }
+
+    /* KaTeX font size harmony */
+    .katex {
+      font-size: 1.04em;
+    }
+    .katex-display {
+      margin: 0.65em 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.25rem 0;
+    }
+
+    /* Code block styling */
+    pre code.hljs {
+      background: transparent !important;
+      padding: 0 !important;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.81rem;
+      line-height: 1.55;
+    }
+
+    /* Soft shadow card */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(10px);
+      border: 1px solid #DBEAFE;
+      box-shadow: 0 10px 30px -8px rgba(37, 99, 235, 0.08), 0 4px 12px -4px rgba(15, 23, 42, 0.04);
+    }
+
+    .math-box {
+      background: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%);
+      border: 1px solid #BFDBFE;
+      border-left: 4px solid #2563EB;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between select-none sm:select-auto">
+
+  <!-- Top Navigation & Progress Header -->
+  <header class="w-full bg-white/85 backdrop-blur-md border-b border-blue-100 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+      <!-- Brand / Project Badge -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-sky-500 text-white font-bold text-sm flex items-center justify-center shadow-sm shrink-0">
+          EM
+        </span>
+        <div class="truncate">
+          <span class="text-xs font-semibold uppercase tracking-wider text-sky-600 block leading-none">Đồ án GMM &amp; EM Methods</span>
+          <h1 id="header-slide-title" class="text-sm font-semibold text-slate-800 truncate mt-0.5">
+            Giới thiệu tổng hợp
+          </h1>
+        </div>
+      </div>
+
+      <!-- Controls & TOC Trigger -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-toc" onclick="toggleTOC()" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition flex items-center gap-1.5" title="Mục lục Slide (Phím M)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"/></svg>
+          <span class="hidden sm:inline">Mục lục</span>
+        </button>
+
+        <button onclick="goToSlide(14)" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 transition flex items-center gap-1.5" title="Chạy thử mô phỏng EM">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span class="hidden md:inline">Mô phỏng EM</span>
+        </button>
+
+        <div class="h-5 w-[1px] bg-slate-200 mx-1"></div>
+
+        <button id="btn-prev" onclick="prevSlide()" class="p-2 rounded-xl bg-white hover:bg-blue-50 text-slate-700 border border-slate-200 disabled:opacity-40 transition" title="Slide trước (←)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+
+        <span id="slide-counter" class="text-xs sm:text-sm font-semibold text-slate-700 px-2 min-w-[54px] text-center font-mono">
+          1 / 16
+        </span>
+
+        <button id="btn-next" onclick="nextSlide()" class="p-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-40 transition" title="Slide tiếp theo (→)">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Thin Pastel Progress Bar -->
+    <div class="w-full h-1 bg-blue-100">
+      <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-sky-400 transition-all duration-300" style="width: 6.25%;"></div>
+    </div>
+  </header>
+
+  <!-- Table of Contents Drawer Modal -->
+  <div id="toc-modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-xs z-50 hidden items-center justify-center p-4" onclick="if(event.target===this) toggleTOC()">
+    <div class="bg-white rounded-2xl border border-blue-100 shadow-2xl max-w-3xl w-full max-h-[82vh] flex flex-col overflow-hidden">
+      <div class="px-6 py-4 bg-blue-50/70 border-b border-blue-100 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-800">Danh mục nội dung bài thuyết trình (16 Slides)</h2>
+          <p class="text-xs text-slate-500">Nhấp chọn một slide bất kỳ để di chuyển nhanh</p>
+        </div>
+        <button onclick="toggleTOC()" class="p-1.5 rounded-lg hover:bg-blue-100 text-slate-500 hover:text-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="toc-grid" class="p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Slide Viewport -->
+  <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col justify-center">
+
+    <!-- ==================== SLIDE 1 ==================== -->
+    <section class="slide-container active flex-col justify-between glass-card rounded-3xl p-6 sm:p-10 min-h-[76vh] relative overflow-hidden" data-title="1. Giới thiệu tổng hợp: Thuật toán EM trong GMM">
+      <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-blue-100/60 blur-2xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-sky-100/60 blur-2xl pointer-events-none"></div>
+
+      <div class="relative z-10 flex flex-col lg:flex-row items-center gap-8 my-auto">
+        <div class="flex-1 space-y-5">
+          <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold">
+            <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+            ĐỒ ÁN MÔN HỌC: GMM &amp; EM METHODS
+          </div>
+
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 leading-tight tracking-tight">
+            Thuật toán <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500">Expectation-Maximization</span> (EM)
+          </h2>
+
+          <p class="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">
+            Phương pháp ước lượng hợp lý cực đại (MLE) lặp cho mô hình <strong>Gaussian Mixture Model (GMM)</strong> trong bài toán phân cụm mềm (<em>Soft Clustering</em>) và ước lượng mật độ xác suất khi tồn tại biến ẩn.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div class="p-4 rounded-2xl bg-blue-50/70 border border-blue-100">
+              <div class="text-xs font-semibold text-blue-600 uppercase">Phần 1 • Slides 2–4</div>
+              <div class="text-sm font-bold text-slate-800 mt-1">Bài toán tối ưu GMM</div>
+              <p class="text-xs text-slate-500 mt-1">Tính nan giải của MLE trực tiếp &amp; vai trò của EM.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-sky-50/70 border border-sky-100">
+              <div class="text-xs font-semibold text-sky-600 uppercase">Phần 2 • Slides 5–10</div>
+              <div class="text-sm font-bold text-slate-800 mt-1">Biến ẩn &amp; Bước E</div>
+              <p class="text-xs text-slate-500 mt-1">Responsibility $r_{ik}$, hàm phụ trợ $\mathcal{Q}(\boldsymbol{\theta}\mid\boldsymbol{\theta}^{(t)})$.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100">
+              <div class="text-xs font-semibold text-indigo-600 uppercase">Phần 3 • Slides 11–16</div>
+              <div class="text-sm font-bold text-slate-800 mt-1">Bước M &amp; Thực nghiệm</div>
+              <p class="text-xs text-slate-500 mt-1">Cập nhật $\boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k, \pi_k$ &amp; Mô phỏng trực tiếp.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Overview Card -->
+        <div class="w-full lg:w-[410px] bg-white rounded-2xl border border-blue-100 p-5 shadow-sm space-y-4 shrink-0">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Mô hình hóa tổng quát</span>
+            <span class="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 text-blue-600">K-Components</span>
+          </div>
+
+          <div class="math-box p-3.5 rounded-xl text-sm">
+            <div class="text-xs font-semibold text-blue-700 mb-1">Mật độ hỗn hợp Gaussian:</div>
+            $$p(\mathbf{x}_i \mid \boldsymbol{\theta}) = \sum_{k=1}^{K} \pi_k \, \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)$$
+          </div>
+
+          <div class="space-y-2 text-xs text-slate-600">
+            <div class="flex items-start gap-2">
+              <span class="font-mono font-bold text-blue-600">• θ</span>
+              <span>Bộ tham số cần học: $\{\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k\}_{k=1}^K$</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="font-mono font-bold text-sky-600">• Z</span>
+              <span>Biến ẩn chỉ báo cụm sinh ra dữ liệu $\mathbf{x}_i$</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="font-mono font-bold text-indigo-600">• EM</span>
+              <span>Luân phiên tính kỳ vọng $\mathbf{Z}$ (E) và tối ưu $\boldsymbol{\theta}$ (M)</span>
+            </div>
+          </div>
+
+          <button onclick="nextSlide()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white font-semibold text-sm shadow-sm transition flex items-center justify-center gap-2">
+            Bắt đầu trình bày
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mandatory University Footer -->
+      <div class="relative z-10 mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Chuyên đề: Expectation-Maximization Algorithm</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 2 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="2. Hàm mục tiêu GMM & Vấn đề nan giải của MLE">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 02</span> • <span>Đặt vấn đề tối ưu</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Hàm mục tiêu của GMM &amp; Vấn đề nan giải khi dùng MLE</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Math & Explanation -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl">
+            <div class="text-xs font-bold text-blue-700 uppercase mb-1">Hàm mục tiêu: Marginal Log-Likelihood</div>
+            $$\ln p(\mathbf{X} \mid \boldsymbol{\pi}, \boldsymbol{\mu}, \boldsymbol{\Sigma}) = \sum_{i=1}^{N} \ln \left( \sum_{k=1}^{K} \pi_k \, \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) \right)$$
+            <div class="text-xs text-slate-600 mt-1">
+              Bài toán tìm tham số tối ưu: $\hat{\boldsymbol{\theta}}_{\text{MLE}} = \arg\max_{\boldsymbol{\theta}} \ln p(\mathbf{X} \mid \boldsymbol{\theta})$, với $\boldsymbol{\theta} = \{\boldsymbol{\pi}, \boldsymbol{\mu}, \boldsymbol{\Sigma}\}$.
+            </div>
+          </div>
+
+          <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-2">
+            <h3 class="text-sm font-bold text-amber-900 flex items-center gap-2">
+              <span>⚠️ Tại sao không thể giải MLE trực tiếp bằng đạo hàm = 0?</span>
+            </h3>
+            <ul class="text-sm text-slate-700 space-y-1.5 list-disc pl-5">
+              <li><strong>Dấu $\ln$ nằm ngoài tổng $\sum_{k=1}^K$:</strong> Logarit không thể đi xuyên qua phép cộng, khiến $\ln$ không triệt tiêu được hàm mũ $\exp(\cdot)$ bên trong phân phối chuẩn $\mathcal{N}$.</li>
+              <li><strong>Liên kết phi tuyến phức tạp:</strong> Khi lấy đạo hàm $\frac{\partial \mathcal{L}}{\partial \boldsymbol{\mu}_k} = \mathbf{0}$, tham số $\boldsymbol{\mu}_k$ bị vướng vào mẫu số chứa cả $\pi_j, \boldsymbol{\mu}_j, \boldsymbol{\Sigma}_j$ của mọi cụm $j \ne k$.</li>
+              <li><strong>Không tồn tại nghiệm dạng đóng (No closed-form solution)</strong> để giải trực tiếp.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">log_likelihood.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Log-Sum-Exp Trick</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">import numpy as np
+from scipy.special import logsumexp
+
+def marginal_log_likelihood(X, pi, mu, cov):
+    """
+    Tính hàm mục tiêu ln p(X | theta)
+    Sử dụng logsumexp để tránh tràn số (underflow)
+    """
+    N, K = X.shape[0], len(pi)
+    log_prob = np.zeros((N, K))
+    
+    for k in range(K):
+        # ln(pi_k) + ln N(x_i | mu_k, cov_k)
+        log_prob[:, k] = (
+            np.log(pi[k]) + log_gauss(X, mu[k], cov[k])
+        )
+        
+    # Tổng theo k trong không gian log: ln sum_k exp(...)
+    sample_ll = logsumexp(log_prob, axis=1)
+    return np.sum(sample_ll)</code></pre>
+          <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">
+            Kỹ thuật <code class="text-blue-700 font-mono">logsumexp</code> giúp tính $\ln \sum_k e^{a_k}$ chính xác mà không bị tràn dưới (underflow về 0) khi mật độ xác suất rất nhỏ.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 2 / 16 • Marginal Log-Likelihood</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 3 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="3. Tại sao không dùng các phương pháp tối ưu khác?">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 03</span> • <span>So sánh phương pháp tối ưu</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Tại sao không dùng Gradient Descent, Newton hay K-Means?</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Comparison Table & Constraints -->
+        <div class="lg:col-span-7 space-y-3.5">
+          <div class="bg-white border border-blue-100 rounded-2xl p-4 shadow-xs">
+            <h3 class="text-sm font-bold text-blue-800 mb-1.5">1. Các ràng buộc tham số khắt khe của GMM</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100">
+                <div class="font-semibold text-slate-800 mb-1">Trọng số trộn $\boldsymbol{\pi}$ (Simplex):</div>
+                $$\sum_{k=1}^{K} \pi_k = 1, \quad \pi_k > 0 \;\forall k$$
+              </div>
+              <div class="p-3 rounded-xl bg-sky-50/60 border border-sky-100">
+                <div class="font-semibold text-slate-800 mb-1">Ma trận hiệp phương sai $\boldsymbol{\Sigma}_k$:</div>
+                $$\boldsymbol{\Sigma}_k = \boldsymbol{\Sigma}_k^T \succ 0 \quad (\text{Xác định dương})$$
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-hidden border border-slate-200 rounded-2xl bg-white">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-blue-50 text-slate-800 border-b border-blue-100">
+                <tr>
+                  <th class="p-3 font-bold">Phương pháp</th>
+                  <th class="p-3 font-bold">Hạn chế khi áp dụng cho GMM</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td class="p-3 font-semibold text-rose-700 align-top">Gradient Descent / Adam</td>
+                  <td class="p-3">Cập nhật bước nhảy tự do dễ phá vỡ ràng buộc $\sum \pi_k = 1$ và làm $\boldsymbol{\Sigma}_k$ mất tính xác định dương. Rất nhạy cảm với <em>learning rate</em>.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-semibold text-amber-700 align-top">Newton-Raphson (Bậc 2)</td>
+                  <td class="p-3">Phải tính và nghịch đảo ma trận Hessian kích thước $\mathcal{O}(K^2 D^4)$ mỗi bước, chi phí tính toán cực lớn trong không gian nhiều chiều.</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-semibold text-sky-700 align-top">K-Means Clustering</td>
+                  <td class="p-3">Chỉ gán cụm cứng (<em>hard assignment</em> $z_{ik} \in \{0,1\}$), ngầm giả định mọi cụm hình cầu và có cùng phương sai ($\boldsymbol{\Sigma}_k = \sigma^2 \mathbf{I}$).</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">constraints_check.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-sky-100 text-sky-700 font-medium">Miền xác định</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">import numpy as np
+
+def init_gmm_params(X, K, seed=42):
+    """Khởi tạo tham số hợp lệ trong miền ràng buộc"""
+    rng = np.random.default_rng(seed)
+    N, D = X.shape
+    
+    # 1. Trọng số pi nằm trên xác suất đơn hình
+    pi = np.full(K, 1.0 / K)
+    
+    # 2. Tâm cụm chọn ngẫu nhiên từ dữ liệu
+    idx = rng.choice(N, size=K, replace=False)
+    mu = X[idx].copy()
+    
+    # 3. Ma trận hiệp phương sai đối xứng xác định dương
+    base_cov = np.cov(X.T) + 1e-6 * np.eye(D)
+    cov = np.array([base_cov.copy() for _ in range(K)])
+    
+    return pi, mu, cov
+
+def is_valid_params(pi, cov):
+    cond_pi = np.isclose(pi.sum(), 1.0) and np.all(pi > 0)
+    cond_cov = all(
+        np.all(np.linalg.eigvalsh(S) > 0) for S in cov
+    )
+    return cond_pi and cond_cov</code></pre>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 3 / 16 • So sánh với các thuật toán tối ưu khác</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 4 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="4. Mục tiêu của EM & Các đặc tính phù hợp với GMM">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 04</span> • <span>Triết lý thuật toán EM</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Mục tiêu của EM &amp; Các đặc tính nổi bật cho mô hình GMM</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Objectives & Features -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl">
+            <div class="text-xs font-bold text-blue-700 uppercase mb-1">Mục tiêu cốt lõi của EM</div>
+            <p class="text-sm text-slate-700">
+              Thay vì tối đa hóa trực tiếp $\ln p(\mathbf{X} \mid \boldsymbol{\theta})$ khó giải, EM xây dựng và tối đa hóa lặp một <strong>cận dưới chặt (ELBO / hàm phụ trợ $\mathcal{Q}$)</strong> tại điểm hiện tại $\boldsymbol{\theta}^{(t)}$:
+            </p>
+            $$\boldsymbol{\theta}^{(t+1)} = \arg\max_{\boldsymbol{\theta}} \mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)})$$
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3.5 rounded-2xl bg-white border border-blue-100 shadow-xs">
+              <div class="text-xs font-bold text-blue-600">1. Hội tụ đơn điệu (Monotonicity)</div>
+              <p class="text-xs text-slate-600 mt-1">
+                Đảm bảo hàm Log-Likelihood không bao giờ giảm sau mỗi vòng lặp: $\ln p(\mathbf{X}\mid\boldsymbol{\theta}^{(t+1)}) \ge \ln p(\mathbf{X}\mid\boldsymbol{\theta}^{(t)})$.
+              </p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-sky-100 shadow-xs">
+              <div class="text-xs font-bold text-sky-600">2. Tự động thỏa mãn ràng buộc</div>
+              <p class="text-xs text-slate-600 mt-1">
+                Công thức cập nhật tự động giữ $\sum_{k=1}^K \pi_k^{(t+1)} = 1$, $\pi_k > 0$ và ma trận $\boldsymbol{\Sigma}_k^{(t+1)}$ nửa xác định dương.
+              </p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-indigo-100 shadow-xs">
+              <div class="text-xs font-bold text-indigo-600">3. Nghiệm đóng (Closed-Form)</div>
+              <p class="text-xs text-slate-600 mt-1">
+                Mỗi bước cập nhật đều có công thức giải tích tường minh, không cần chọn siêu tham số <em>learning rate</em>.
+              </p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-teal-100 shadow-xs">
+              <div class="text-xs font-bold text-teal-600">4. Phân cụm mềm xác suất</div>
+              <p class="text-xs text-slate-600 mt-1">
+                Mở rộng tự nhiên của K-Means: gán xác suất hậu nghiệm $r_{ik} \in [0,1]$ và học hình dạng elip riêng cho từng cụm.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">fit_em.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Vòng lặp EM</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">def fit_em(X, K, max_iter=100, tol=1e-5, reg=1e-6):
+    """Huấn luyện GMM bằng thuật toán EM"""
+    pi, mu, cov = init_gmm_params(X, K)
+    ll_history = []
+    
+    for t in range(max_iter):
+        # 1. E-Step: Tính ma trận responsibility R
+        R, mean_ll = e_step(X, pi, mu, cov)
+        ll_history.append(mean_ll)
+        
+        # Kiểm tra điều kiện dừng hội tụ
+        if t > 0 and abs(ll_history[-1] - ll_history[-2]) < tol:
+            break
+            
+        # 2. M-Step: Cập nhật bộ tham số theta
+        pi, mu, cov = m_step(X, R, reg=reg)
+        
+    return pi, mu, cov, R, ll_history</code></pre>
+          <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">
+            Vòng lặp luân phiên 2 bước cho đến khi độ tăng của hàm Log-Likelihood nhỏ hơn ngưỡng $\text{tol}$.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 4 / 16 • Mục tiêu &amp; Đặc tính của EM</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 5 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="5. Biến ẩn (Latent) & Biến chỉ báo (Indicator Variables)">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 05</span> • <span>Mô hình biến ẩn</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Định nghĩa Biến ẩn (Latent) &amp; Biến chỉ báo (Indicator)</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Indicator variable definition -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-white border border-blue-100 rounded-2xl p-4 space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">1. Biến chỉ báo nhị phân (1-of-K Encoding)</h3>
+            <p class="text-sm text-slate-600">
+              Với mỗi điểm dữ liệu $\mathbf{x}_i \in \mathbb{R}^D$, ta đưa vào một vector biến ẩn $\mathbf{z}_i = (z_{i1}, z_{i2}, \dots, z_{iK})^T$ cho biết cụm nào đã sinh ra $\mathbf{x}_i$:
+            </p>
+            <div class="math-box p-3 rounded-xl text-sm">
+              $$z_{ik} \in \{0, 1\}, \qquad \sum_{k=1}^{K} z_{ik} = 1$$
+              <div class="text-xs text-slate-600 mt-1">
+                ($z_{ik} = 1$ nếu $\mathbf{x}_i$ được sinh từ thành phần Gaussian thứ $k$, và $z_{ij} = 0$ với mọi $j \ne k$).
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-sky-100 rounded-2xl p-4 space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">2. Phân phối tiên nghiệm &amp; Phân phối có điều kiện</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="p-3 rounded-xl bg-blue-50/70 border border-blue-100">
+                <div class="text-xs font-semibold text-blue-700">Phân phối tiên nghiệm $p(\mathbf{z}_i)$:</div>
+                $$p(\mathbf{z}_i) = \prod_{k=1}^{K} \pi_k^{z_{ik}}$$
+                <div class="text-[11px] text-slate-500">Vì $P(z_{ik}=1) = \pi_k$.</div>
+              </div>
+              <div class="p-3 rounded-xl bg-sky-50/70 border border-sky-100">
+                <div class="text-xs font-semibold text-sky-700">Có điều kiện $p(\mathbf{x}_i \mid \mathbf{z}_i)$:</div>
+                $$p(\mathbf{x}_i \mid \mathbf{z}_i) = \prod_{k=1}^{K} \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)^{z_{ik}}$$
+                <div class="text-[11px] text-slate-500">Chỉ kích hoạt đúng cụm có $z_{ik}=1$.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">sample_latent_gmm.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Generative Process</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">import numpy as np
+
+def sample_gmm_with_latent(N, pi, mu, cov, seed=0):
+    """Sinh dữ liệu X kèm ma trận biến chỉ báo ẩn Z"""
+    rng = np.random.default_rng(seed)
+    K, D = mu.shape
+    
+    # Ma trận biến chỉ báo Z kích thước (N, K)
+    Z = np.zeros((N, K), dtype=int)
+    X = np.zeros((N, D))
+    
+    for i in range(N):
+        # Bước 1: Chọn cụm k ~ Categorical(pi)
+        k = rng.choice(K, p=pi)
+        Z[i, k] = 1  # z_ik = 1, các vị trí khác = 0
+        
+        # Bước 2: Sinh x_i ~ N(mu_k, cov_k)
+        X[i] = rng.multivariate_normal(mu[k], cov[k])
+        
+    return X, Z</code></pre>
+          <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">
+            Lấy tổng theo mọi cấu hình $\mathbf{z}_i$ cho ta lại phân phối biên: $p(\mathbf{x}_i) = \sum_{\mathbf{z}_i} p(\mathbf{z}_i)p(\mathbf{x}_i\mid\mathbf{z}_i) = \sum_{k=1}^K \pi_k \mathcal{N}(\mathbf{x}_i\mid\boldsymbol{\mu}_k,\boldsymbol{\Sigma}_k)$.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 5 / 16 • Biến chỉ báo $z_{ik}$</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 6 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="6. Complete-Data Log-Likelihood vs. Thực tế thiếu dữ liệu">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 06</span> • <span>Dữ liệu đầy đủ &amp; Dữ liệu khuyết</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Complete-Data Log-Likelihood &amp; Bài toán thực tế khi thiếu $\mathbf{Z}$</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Math -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl">
+            <div class="text-xs font-bold text-blue-700 uppercase mb-1">1. Nếu biết cả $(\mathbf{X}, \mathbf{Z})$ — Complete-Data Likelihood</div>
+            $$p(\mathbf{X}, \mathbf{Z} \mid \boldsymbol{\theta}) = \prod_{i=1}^{N} \prod_{k=1}^{K} \left[ \pi_k \, \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) \right]^{z_{ik}}$$
+            <div class="text-xs font-bold text-sky-700 uppercase mt-2 mb-1">Lấy logarit hai vế (Complete-Data Log-Likelihood):</div>
+            $$\ln p(\mathbf{X}, \mathbf{Z} \mid \boldsymbol{\theta}) = \sum_{i=1}^{N} \sum_{k=1}^{K} z_{ik} \Big[ \ln \pi_k + \ln \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) \Big]$$
+            <p class="text-xs text-emerald-700 font-medium mt-1">
+              ✓ Dấu $\ln$ đã đi vào bên trong! Các tham số $\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k$ hoàn toàn tách rời nhau.
+            </p>
+          </div>
+
+          <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-4 space-y-1.5">
+            <h3 class="text-sm font-bold text-slate-800">2. Vấn đề thực tế &amp; Cách EM giải quyết</h3>
+            <p class="text-sm text-slate-700">
+              Trong thực tế, ta <strong>chỉ quan sát được dữ liệu $\mathbf{X}$</strong> mà hoàn toàn không biết nhãn cụm $\mathbf{Z}$, nên không thể tính trực tiếp giá trị của $z_{ik}$.
+            </p>
+            <p class="text-sm text-blue-800 font-medium">
+              → Giải pháp của EM: Thay thế biến ẩn chưa biết $z_{ik}$ bằng <strong>kỳ vọng có điều kiện</strong> của nó theo phân phối hậu nghiệm $p(\mathbf{Z} \mid \mathbf{X}, \boldsymbol{\theta}^{(t)})$ tại vòng lặp hiện tại $t$.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">log_gauss.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Mật độ Log-Gaussian</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">import numpy as np
+
+def log_gauss(X, mu, cov):
+    """
+    Tính ln N(x_i | mu, cov) cho tất cả i = 1..N
+    Công thức: -0.5 * (D*ln(2*pi) + ln|cov| + Mahalanobis^2)
+    """
+    N, D = X.shape
+    diff = X - mu  # (N, D)
+    
+    # Phân rã Cholesky giúp tính định thức & nghịch đảo ổn định
+    L = np.linalg.cholesky(cov)
+    log_det = 2.0 * np.sum(np.log(np.diag(L)))
+    
+    # Giải hệ L * y = diff.T => ||y||^2 = diff @ inv(cov) @ diff.T
+    sol = np.linalg.solve(L, diff.T)
+    maha_sq = np.sum(sol ** 2, axis=0)
+    
+    return -0.5 * (D * np.log(2.0 * np.pi) + log_det + maha_sq)</code></pre>
+          <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">
+            Hàm <code class="text-blue-700 font-mono">log_gauss</code> là thành phần cốt lõi được gọi bên trong bước E để tính $\ln \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k)$.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 6 / 16 • Complete-Data Log-Likelihood</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 7 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="7. Nguồn gốc biểu thức Responsibility (r_ik)">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 07</span> • <span>Suy diễn Bayes</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Từ đâu mà có biểu thức Responsibility ($r_{ik}$) trong EM?</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Bayes Derivation -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-white border border-blue-100 rounded-2xl p-4 space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">1. Kỳ vọng của biến chỉ báo nhị phân $z_{ik}$</h3>
+            <p class="text-sm text-slate-600">
+              Vì $z_{ik} \in \{0, 1\}$ là biến ngẫu nhiên Bernoulli có điều kiện khi biết $\mathbf{x}_i$ và tham số $\boldsymbol{\theta}^{(t)}$, kỳ vọng có điều kiện của nó chính là xác suất hậu nghiệm:
+            </p>
+            <div class="math-box p-3.5 rounded-xl">
+              $$r_{ik}^{(t)} \triangleq \mathbb{E}\big[z_{ik} \mid \mathbf{x}_i, \boldsymbol{\theta}^{(t)}\big] = P\big(z_{ik} = 1 \mid \mathbf{x}_i, \boldsymbol{\theta}^{(t)}\big)$$
+            </div>
+          </div>
+
+          <div class="bg-white border border-sky-100 rounded-2xl p-4 space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">2. Áp dụng định lý Bayes</h3>
+            <div class="math-box p-3.5 rounded-xl">
+              $$r_{ik}^{(t)} = \frac{P(z_{ik}=1 \mid \boldsymbol{\theta}^{(t)}) \, p(\mathbf{x}_i \mid z_{ik}=1, \boldsymbol{\theta}^{(t)})}{\sum_{j=1}^{K} P(z_{ij}=1 \mid \boldsymbol{\theta}^{(t)}) \, p(\mathbf{x}_i \mid z_{ij}=1, \boldsymbol{\theta}^{(t)})} = \frac{\pi_k^{(t)} \, \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k^{(t)}, \boldsymbol{\Sigma}_k^{(t)})}{\sum_{j=1}^{K} \pi_j^{(t)} \, \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_j^{(t)}, \boldsymbol{\Sigma}_j^{(t)})}$$
+            </div>
+            <p class="text-xs text-slate-600">
+              <strong>Ý nghĩa vật lý:</strong> $r_{ik}^{(t)}$ đo lường mức độ <em>"trách nhiệm" (responsibility)</em> mà thành phần Gaussian thứ $k$ giải thích cho sự xuất hiện của điểm dữ liệu $\mathbf{x}_i$.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">single_responsibility.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-sky-100 text-sky-700 font-medium">Định lý Bayes</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">import numpy as np
+from scipy.special import logsumexp
+
+def compute_point_responsibility(x_i, pi, mu, cov):
+    """
+    Tính vector responsibility r_i = [r_i1, ..., r_iK]
+    cho một điểm dữ liệu x_i theo định lý Bayes
+    """
+    K = len(pi)
+    # Tử số trong không gian log: ln(pi_k) + ln N(x_i | mu_k, cov_k)
+    log_numer = np.array([
+        np.log(pi[k]) + log_gauss(x_i[None, :], mu[k], cov[k])[0]
+        for k in range(K)
+    ])
+    
+    # Mẫu số trong không gian log: ln sum_j exp(log_numer_j)
+    log_denom = logsumexp(log_numer)
+    
+    # Chia trong không gian log = trừ rồi lấy exp
+    r_i = np.exp(log_numer - log_denom)
+    return r_i  # Tổng các phần tử đúng bằng 1.0</code></pre>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 7 / 16 • Biểu thức Responsibility $r_{ik}$</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 8 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="8. Bước E (Expectation Step) - Mục tiêu & Biến đổi toán học">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 08</span> • <span>Bước E (Expectation Step)</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Bước Expectation (E-Step): Mục tiêu &amp; Biến đổi toán học</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Sequential Mathematical Derivation -->
+        <div class="lg:col-span-7 space-y-3.5">
+          <div class="bg-blue-50/80 border border-blue-200 rounded-2xl p-3.5">
+            <div class="text-xs font-bold text-blue-800 uppercase">Mục tiêu tại vòng lặp thứ $t$</div>
+            <p class="text-sm text-slate-700 mt-1">
+              Cố định bộ tham số hiện tại $\boldsymbol{\theta}^{(t)} = \{\boldsymbol{\pi}^{(t)}, \boldsymbol{\mu}^{(t)}, \boldsymbol{\Sigma}^{(t)}\}$, tìm phân phối hậu nghiệm $p(\mathbf{Z} \mid \mathbf{X}, \boldsymbol{\theta}^{(t)})$ và tính kỳ vọng của <em>Complete-Data Log-Likelihood</em>.
+            </p>
+          </div>
+
+          <div class="math-box p-4 rounded-2xl space-y-2 text-sm">
+            <div class="text-xs font-bold text-slate-700 uppercase">Biến đổi tuần tự đưa kỳ vọng vào trong tổng:</div>
+            $$\begin{aligned}
+            \mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)}) &= \mathbb{E}_{\mathbf{Z} \mid \mathbf{X}, \boldsymbol{\theta}^{(t)}} \Big[ \ln p(\mathbf{X}, \mathbf{Z} \mid \boldsymbol{\theta}) \Big] \\
+            &= \mathbb{E}_{\mathbf{Z} \mid \mathbf{X}, \boldsymbol{\theta}^{(t)}} \left[ \sum_{i=1}^{N} \sum_{k=1}^{K} z_{ik} \Big( \ln \pi_k + \ln \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) \Big) \right] \\
+            &= \sum_{i=1}^{N} \sum_{k=1}^{K} \underbrace{\mathbb{E}_{\mathbf{Z} \mid \mathbf{X}, \boldsymbol{\theta}^{(t)}}[z_{ik}]}_{=\, r_{ik}^{(t)}} \Big( \ln \pi_k + \ln \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) \Big)
+            \end{aligned}$$
+            <p class="text-xs text-slate-600">
+              Do tính tuyến tính của kỳ vọng và các cặp $(\mathbf{x}_i, \mathbf{z}_i)$ độc lập nhau, việc tính kỳ vọng quy về tính ma trận $r_{ik}^{(t)}$.
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Exact User Python Code for e_step -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">e_step.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Vectorized Python</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">def e_step(X, pi, mu, cov):
+    # Tính ma trận logp kích thước (N, K):
+    # cột k chứa ln(pi_k) + ln N(x_i | mu_k, cov_k)
+    logp = np.column_stack([
+        np.log(pi[k]) + log_gauss(X, mu[k], cov[k])
+        for k in range(len(pi))
+    ])
+    
+    # Tính mẫu số Bayes cho từng điểm i:
+    # ll_i = ln sum_k exp(logp_{ik})
+    ll = logsumexp(logp, axis=1)
+    
+    # Trả về ma trận responsibility R (N, K) và mean log-lik
+    return np.exp(logp - ll[:, None]), ll.mean()</code></pre>
+          <div class="mt-3 pt-2 border-t border-slate-200 text-xs text-slate-600 space-y-1">
+            <div>• <code class="font-mono text-blue-700">np.exp(logp - ll[:, None])</code> thực hiện phép chia $\frac{\exp(\text{logp}_{ik})}{\sum_j \exp(\text{logp}_{ij})}$ cực kỳ ổn định số học.</div>
+            <div>• Đồng thời trả về <code class="font-mono text-sky-700">ll.mean()</code> để theo dõi tiến trình hội tụ.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 8 / 16 • Bước E (Expectation Step)</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 9 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="9. Ma trận Responsibility R kích thước N x K">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 09</span> • <span>Cấu trúc dữ liệu đầu ra E-Step</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Ma trận Responsibility $\mathbf{R}$ kích thước $N \times K$</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Explicit Matrix R -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl">
+            <div class="text-xs font-bold text-blue-700 uppercase mb-1">Biểu diễn tường minh ma trận $\mathbf{R} \in [0, 1]^{N \times K}$</div>
+            $$\mathbf{R} = \begin{bmatrix}
+            r_{11} & r_{12} & \cdots & r_{1K} \\
+            r_{21} & r_{22} & \cdots & r_{2K} \\
+            \vdots & \vdots & \ddots & \vdots \\
+            r_{N1} & r_{N2} & \cdots & r_{NK}
+            \end{bmatrix}_{N \times K}$$
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-4 rounded-2xl bg-white border border-blue-100 shadow-xs">
+              <div class="text-xs font-bold text-blue-700 uppercase">Tính chất theo hàng (Điểm dữ liệu $i$)</div>
+              $$\sum_{k=1}^{K} r_{ik} = 1, \quad \forall i \in \{1, \dots, N\}$$
+              <p class="text-xs text-slate-600 mt-1">
+                Mỗi hàng là một phân phối xác suất hậu nghiệm trên $K$ cụm cho điểm dữ liệu $\mathbf{x}_i$.
+              </p>
+            </div>
+            <div class="p-4 rounded-2xl bg-white border border-sky-100 shadow-xs">
+              <div class="text-xs font-bold text-sky-700 uppercase">Tính chất theo cột (Cụm $k$)</div>
+              $$N_k = \sum_{i=1}^{N} r_{ik}, \qquad \sum_{k=1}^{K} N_k = N$$
+              <p class="text-xs text-slate-600 mt-1">
+                $N_k$ là <strong>số điểm dữ liệu hiệu dụng</strong> (effective number of points) được gán cho cụm $k$.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">inspect_R_matrix.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-sky-100 text-sky-700 font-medium">Kiểm chứng R</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">R, mean_ll = e_step(X, pi, mu, cov)
+
+# Kích thước ma trận R: (N, K)
+print("Shape của R:", R.shape)
+
+# 1. Tổng theo từng hàng (axis=1) luôn bằng 1
+row_sums = R.sum(axis=1)
+assert np.allclose(row_sums, 1.0)
+
+# 2. Tổng theo từng cột (axis=0) chính là N_k
+Nk = R.sum(axis=0)  # Vector kích thước (K,)
+print("Số điểm hiệu dụng mỗi cụm Nk:", Nk)
+print("Tổng Nk toàn bộ cụm:", Nk.sum())  # Bằng N
+
+# 3. Phân cụm cứng (nếu cần suy diễn nhãn)
+hard_labels = np.argmax(R, axis=1)</code></pre>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 9 / 16 • Ma trận Responsibility $\mathbf{R}$</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 10 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="10. Định nghĩa & Ý nghĩa hàm Q(theta | theta^(t))">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 10</span> • <span>Hàm phụ trợ Surrogate</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Định nghĩa &amp; Ý nghĩa hình học của hàm $\mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)})$</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Definition & Meaning -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl">
+            <div class="text-xs font-bold text-blue-700 uppercase mb-1">Biểu thức khai triển đầy đủ của hàm $\mathcal{Q}$</div>
+            $$\begin{aligned}
+            \mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)}) &= \sum_{i=1}^{N} \sum_{k=1}^{K} r_{ik}^{(t)} \ln \pi_k + \sum_{i=1}^{N} \sum_{k=1}^{K} r_{ik}^{(t)} \ln \mathcal{N}(\mathbf{x}_i \mid \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k) \\
+            &= \underbrace{\sum_{k=1}^{K} N_k \ln \pi_k}_{\text{Chỉ phụ thuộc } \boldsymbol{\pi}} - \frac{1}{2} \sum_{i=1}^{N} \sum_{k=1}^{K} r_{ik}^{(t)} \Big[ D\ln(2\pi) + \ln|\boldsymbol{\Sigma}_k| + (\mathbf{x}_i - \boldsymbol{\mu}_k)^T \boldsymbol{\Sigma}_k^{-1} (\mathbf{x}_i - \boldsymbol{\mu}_k) \Big]
+            \end{aligned}$$
+          </div>
+
+          <div class="bg-white border border-blue-100 rounded-2xl p-4 space-y-2">
+            <h3 class="text-sm font-bold text-slate-800">Tại sao hàm $\mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)})$ lại quan trọng?</h3>
+            <ul class="text-sm text-slate-700 space-y-1.5 list-disc pl-5">
+              <li><strong>Tách biến hoàn toàn (Decoupling):</strong> $\mathcal{Q}$ chia thành các tổng độc lập cho $\boldsymbol{\pi}$, từng $\boldsymbol{\mu}_k$ và từng $\boldsymbol{\Sigma}_k$.</li>
+              <li><strong>Hàm phụ trợ (Minorize-Maximize):</strong> Hàm cận dưới $\mathcal{L}(\boldsymbol{\theta}) \ge \mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)}) + \mathcal{H}(\mathbf{R}^{(t)})$ tiếp xúc với Log-Likelihood tại $\boldsymbol{\theta} = \boldsymbol{\theta}^{(t)}$. Do đó tối đa hóa $\mathcal{Q}$ chắc chắn kéo $\mathcal{L}(\boldsymbol{\theta})$ tăng lên!</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">compute_q_function.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Hàm Q</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">def compute_Q(X, R, pi, mu, cov):
+    """
+    Tính giá trị hàm Q(theta | theta^(t))
+    với ma trận responsibility R đã cố định từ E-step
+    """
+    K = len(pi)
+    q_val = 0.0
+    
+    for k in range(K):
+        # Thành phần 1: sum_i r_ik * ln(pi_k)
+        term_pi = np.sum(R[:, k]) * np.log(pi[k])
+        
+        # Thành phần 2: sum_i r_ik * ln N(x_i | mu_k, cov_k)
+        term_gauss = np.sum(R[:, k] * log_gauss(X, mu[k], cov[k]))
+        
+        q_val += (term_pi + term_gauss)
+        
+    return q_val</code></pre>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 10 / 16 • Hàm phụ trợ $\mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)})$</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 11 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="11. Bước M (Maximization Step) - Tìm theta^(t+1) từ hàm Q">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 11</span> • <span>Bước M (Maximization Step)</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Bước Maximization (M-Step): Tìm $\boldsymbol{\theta}^{(t+1)}$ từ hàm $\mathcal{Q}$</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: M-step overview -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl">
+            <div class="text-xs font-bold text-blue-700 uppercase mb-1">Bài toán tối ưu tại bước M</div>
+            $$\boldsymbol{\theta}^{(t+1)} = \arg\max_{\boldsymbol{\theta}} \mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)})$$
+            <div class="text-xs text-slate-600 mt-1">
+              Với $\boldsymbol{\theta} = \big\{ \boldsymbol{\pi} = (\pi_1,\dots,\pi_K), \; \{\boldsymbol{\mu}_k\}_{k=1}^K, \; \{\boldsymbol{\Sigma}_k\}_{k=1}^K \big\}$ và ma trận $r_{ik}^{(t)}$ giữ cố định như hằng số.
+            </div>
+          </div>
+
+          <div class="bg-white border border-blue-100 rounded-2xl p-4 space-y-2.5">
+            <h3 class="text-sm font-bold text-slate-800">Chiến lược giải 3 nhóm tham số độc lập:</h3>
+            <div class="space-y-2 text-sm text-slate-700">
+              <div class="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
+                <span><strong>1. Vector kỳ vọng $\boldsymbol{\mu}_k$:</strong> Giải $\nabla_{\boldsymbol{\mu}_k} \mathcal{Q} = \mathbf{0}$</span>
+                <span class="font-mono text-xs text-blue-700">Slide 12</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-sky-50/60 border border-sky-100 flex items-center justify-between">
+                <span><strong>2. Ma trận hiệp phương sai $\boldsymbol{\Sigma}_k$:</strong> Giải $\nabla_{\boldsymbol{\Sigma}_k^{-1}} \mathcal{Q} = \mathbf{0}$</span>
+                <span class="font-mono text-xs text-sky-700">Slide 13</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-100 flex items-center justify-between">
+                <span><strong>3. Trọng số trộn $\pi_k$:</strong> Nhân tử Lagrange với $\sum \pi_k = 1$</span>
+                <span class="font-mono text-xs text-indigo-700">Slide 14</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Exact User Python Code for m_step -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">m_step.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Closed-form M-Step</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">def m_step(X, R, reg=1e-6):
+    n, d = X.shape
+    # Tổng responsibility từng cụm N_k (tránh chia 0)
+    Nk = R.sum(0) + 1e-10
+    
+    # 1. Cập nhật vector kỳ vọng mu (K, d)
+    mu = (R.T @ X) / Nk[:, None]
+    
+    # 2. Cập nhật ma trận hiệp phương sai cov (K, d, d)
+    cov = np.empty((R.shape[1], d, d))
+    for k in range(R.shape[1]):
+        diff = X - mu[k]
+        cov[k] = (
+            (R[:, k, None] * diff).T @ diff / Nk[k]
+            + reg * np.eye(d)
+        )
+        
+    # 3. Trả về pi = Nk / n, mu, cov
+    return Nk / n, mu, cov</code></pre>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 11 / 16 • Tổng quan Bước M</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 12 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="12. Suy ra công thức cập nhật Vector kỳ vọng mu_k">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 12</span> • <span>M-Step (1/3): Tâm cụm</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Suy ra công thức cập nhật Vector kỳ vọng $\boldsymbol{\mu}_k^{(t+1)}$</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Derivation -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl space-y-2 text-sm">
+            <div class="text-xs font-bold text-blue-700 uppercase">Lấy đạo hàm riêng hàm $\mathcal{Q}$ theo $\boldsymbol{\mu}_k$ và cho bằng $\mathbf{0}$</div>
+            $$\frac{\partial \mathcal{Q}(\boldsymbol{\theta} \mid \boldsymbol{\theta}^{(t)})}{\partial \boldsymbol{\mu}_k} = -\frac{1}{2} \sum_{i=1}^{N} r_{ik}^{(t)} \frac{\partial}{\partial \boldsymbol{\mu}_k} \Big[ (\mathbf{x}_i - \boldsymbol{\mu}_k)^T \boldsymbol{\Sigma}_k^{-1} (\mathbf{x}_i - \boldsymbol{\mu}_k) \Big] = \mathbf{0}$$
+            $$\iff \sum_{i=1}^{N} r_{ik}^{(t)} \, \boldsymbol{\Sigma}_k^{-1} (\mathbf{x}_i - \boldsymbol{\mu}_k) = \mathbf{0}$$
+            <div class="text-xs text-slate-600">Nhân trái hai vế với $\boldsymbol{\Sigma}_k$ (do $\boldsymbol{\Sigma}_k \succ 0$ khả nghịch):</div>
+            $$\sum_{i=1}^{N} r_{ik}^{(t)} \mathbf{x}_i = \left(\sum_{i=1}^{N} r_{ik}^{(t)}\right) \boldsymbol{\mu}_k \implies \boldsymbol{\mu}_k^{(t+1)} = \frac{1}{N_k} \sum_{i=1}^{N} r_{ik}^{(t)} \mathbf{x}_i$$
+          </div>
+
+          <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-3.5 text-sm text-slate-700">
+            <strong>Ý nghĩa trực quan:</strong> Tâm cụm mới $\boldsymbol{\mu}_k^{(t+1)}$ chính là <strong>trung bình có trọng số (weighted mean)</strong> của toàn bộ dữ liệu $\mathbf{X}$, trong đó trọng số của điểm $\mathbf{x}_i$ là trách nhiệm $r_{ik}^{(t)}$.
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">update_mu.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Nhân ma trận R.T @ X</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python"># X có kích thước (N, d)
+# R có kích thước (N, K)
+
+# Tổng trọng số mỗi cụm Nk có kích thước (K,)
+Nk = R.sum(axis=0) + 1e-10
+
+# Phép nhân ma trận R.T @ X thực hiện đồng thời:
+# sum_{i=1}^N r_{ik} * x_i cho mọi k = 1..K
+# Kết quả (R.T @ X) có kích thước (K, d)
+mu = (R.T @ X) / Nk[:, None]
+
+# Kiểm tra kích thước
+assert mu.shape == (R.shape[1], X.shape[1])</code></pre>
+          <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">
+            Biểu thức <code class="font-mono text-blue-700">(R.T @ X) / Nk[:, None]</code> tính toán đồng thời cho tất cả $K$ cụm chỉ trong một phép nhân ma trận BLAS.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 12 / 16 • Cập nhật Vector kỳ vọng $\boldsymbol{\mu}_k$</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 13 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="13. Suy ra công thức cập nhật Ma trận hiệp phương sai Sigma_k">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 13</span> • <span>M-Step (2/3): Hình dạng &amp; Hướng cụm</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Suy ra công thức cập nhật Ma trận hiệp phương sai $\boldsymbol{\Sigma}_k^{(t+1)}$</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Derivation -->
+        <div class="lg:col-span-7 space-y-3.5">
+          <div class="math-box p-4 rounded-2xl space-y-2 text-sm">
+            <div class="text-xs font-bold text-blue-700 uppercase">Lấy đạo hàm theo ma trận nghịch đảo $\boldsymbol{\Lambda}_k = \boldsymbol{\Sigma}_k^{-1}$</div>
+            <div class="text-xs text-slate-600">Sử dụng $\ln|\boldsymbol{\Sigma}_k| = -\ln|\boldsymbol{\Lambda}_k|$, $\frac{\partial \ln|\boldsymbol{\Lambda}_k|}{\partial \boldsymbol{\Lambda}_k} = \boldsymbol{\Lambda}_k^{-1} = \boldsymbol{\Sigma}_k$, và $\frac{\partial (\mathbf{v}^T \boldsymbol{\Lambda}_k \mathbf{v})}{\partial \boldsymbol{\Lambda}_k} = \mathbf{v}\mathbf{v}^T$:</div>
+            $$\frac{\partial \mathcal{Q}}{\partial \boldsymbol{\Lambda}_k} = \frac{1}{2} \sum_{i=1}^{N} r_{ik}^{(t)} \Big[ \boldsymbol{\Sigma}_k - (\mathbf{x}_i - \boldsymbol{\mu}_k^{(t+1)})(\mathbf{x}_i - \boldsymbol{\mu}_k^{(t+1)})^T \Big] = \mathbf{0}$$
+            $$\implies \boldsymbol{\Sigma}_k^{(t+1)} = \frac{1}{N_k} \sum_{i=1}^{N} r_{ik}^{(t)} (\mathbf{x}_i - \boldsymbol{\mu}_k^{(t+1)})(\mathbf{x}_i - \boldsymbol{\mu}_k^{(t+1)})^T + \epsilon_{\text{reg}} \mathbf{I}_D$$
+          </div>
+
+          <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-700">
+            <strong>Vai trò của thành phần chính quy hóa <code class="font-mono text-amber-900">+ reg * np.eye(d)</code>:</strong><br/>
+            Nếu một cụm bị thu hẹp chỉ ôm đúng 1 điểm dữ liệu ($\boldsymbol{\mu}_k \to \mathbf{x}_i$), định thức $|\boldsymbol{\Sigma}_k| \to 0$ làm hàm Log-Likelihood tiến tới $+\infty$ (<em>singularity</em>). Cộng $\epsilon_{\text{reg}} \mathbf{I}_D$ bảo đảm $\boldsymbol{\Sigma}_k^{(t+1)}$ luôn xác định dương và khả nghịch.
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">update_cov.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-sky-100 text-sky-700 font-medium">Chống suy biến</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">reg = 1e-6
+K, d = mu.shape
+cov = np.empty((K, d, d))
+
+for k in range(K):
+    # Độ lệch từng điểm so với tâm mới mu[k]: (N, d)
+    diff = X - mu[k]
+    
+    # Nhân trọng số r_ik vào từng hàng diff: (N, d)
+    weighted_diff = R[:, k, None] * diff
+    
+    # Tích ngoài có trọng số + chính quy hóa đường chéo
+    cov[k] = (weighted_diff.T @ diff) / Nk[k] + reg * np.eye(d)</code></pre>
+          <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">
+            Kết quả <code class="font-mono text-blue-700">cov[k]</code> là ma trận đối xứng kích thước $(d \times d)$ mô tả độ phân tán và góc xoay elip của cụm $k$.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 13 / 16 • Cập nhật Ma trận hiệp phương sai $\boldsymbol{\Sigma}_k$</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 14 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="14. Suy ra công thức cập nhật Trọng số trộn pi_k">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 14</span> • <span>M-Step (3/3): Tỷ lệ thành phần</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Suy ra công thức cập nhật Trọng số trộn $\pi_k^{(t+1)}$</h2>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
+        <!-- Left: Lagrange Multiplier Derivation -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="math-box p-4 rounded-2xl space-y-2 text-sm">
+            <div class="text-xs font-bold text-blue-700 uppercase">Tối ưu có ràng buộc $\sum_{k=1}^K \pi_k = 1$ bằng hàm Lagrange</div>
+            $$\mathcal{L}(\boldsymbol{\pi}, \lambda) = \sum_{i=1}^{N} \sum_{k=1}^{K} r_{ik}^{(t)} \ln \pi_k - \lambda \left( \sum_{k=1}^{K} \pi_k - 1 \right)$$
+            <div class="text-xs text-slate-600">Lấy đạo hàm theo $\pi_k$ và đặt bằng 0:</div>
+            $$\frac{\partial \mathcal{L}}{\partial \pi_k} = \frac{\sum_{i=1}^{N} r_{ik}^{(t)}}{\pi_k} - \lambda = 0 \implies \pi_k = \frac{N_k}{\lambda}$$
+            <div class="text-xs text-slate-600">Thay vào ràng buộc $\sum_{k=1}^K \pi_k = 1 \implies \frac{\sum_{k=1}^K N_k}{\lambda} = \frac{N}{\lambda} = 1 \implies \lambda = N$:</div>
+            $$\pi_k^{(t+1)} = \frac{N_k}{N} = \frac{1}{N} \sum_{i=1}^{N} r_{ik}^{(t)}$$
+          </div>
+
+          <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-3.5 text-sm text-slate-700">
+            <strong>Ý nghĩa:</strong> Trọng số trộn $\pi_k^{(t+1)}$ bằng tỷ lệ phần trăm số điểm dữ liệu hiệu dụng thuộc về cụm $k$ trên tổng $N$ mẫu.
+          </div>
+        </div>
+
+        <!-- Right: Python Code -->
+        <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+          <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
+            <span class="text-xs font-mono font-semibold text-slate-700">update_pi.py</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 font-medium">Nhân tử Lagrange</span>
+          </div>
+          <pre class="overflow-x-auto"><code class="language-python">n = X.shape[0]
+Nk = R.sum(axis=0) + 1e-10
+
+# Cập nhật trọng số trộn pi_k = N_k / N
+pi = Nk / n
+
+# Chuẩn hóa nhẹ nếu có cộng epsilon 1e-10
+pi = pi / pi.sum()
+
+print("Trọng số pi mới:", np.round(pi, 4))
+print("Tổng các trọng số:", pi.sum())  # 1.0</code></pre>
+          <p class="text-xs text-slate-500 mt-3 pt-2 border-t border-slate-200">
+            Nhờ công thức $\pi_k^{(t+1)} = N_k / N$, điều kiện $\pi_k > 0$ và $\sum_{k=1}^K \pi_k = 1$ luôn được bảo toàn tuyệt đối ở mọi vòng lặp.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 14 / 16 • Cập nhật Trọng số trộn $\pi_k$</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 15: INTERACTIVE EM LAB ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-4 sm:p-6 min-h-[76vh]" data-title="15. Interactive EM Simulator (Phòng thí nghiệm tương tác)">
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-blue-100">
+        <div>
+          <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+            <span>Slide 15</span> • <span>Thực nghiệm tương tác thời gian thực</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Phòng thí nghiệm mô phỏng thuật toán EM trên GMM 2D</h2>
+        </div>
+
+        <!-- Step Status Badge -->
+        <div class="flex items-center gap-2 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-2xl">
+          <span class="text-xs text-slate-600">Vòng lặp <strong id="sim-iter" class="font-mono text-blue-700 text-sm">t = 0</strong></span>
+          <span class="text-slate-300">|</span>
+          <span class="text-xs text-slate-600">Trạng thái: <strong id="sim-phase" class="text-sky-700">Sẵn sàng</strong></span>
+          <span class="text-slate-300">|</span>
+          <span class="text-xs text-slate-600">Mean LL: <strong id="sim-ll" class="font-mono text-emerald-700">-</strong></span>
+        </div>
+      </div>
+
+      <!-- Control Toolbar -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 my-2.5 bg-blue-50/60 border border-blue-100 p-3 rounded-2xl items-center">
+        <!-- Dataset Sliders / Selectors -->
+        <div class="lg:col-span-5 flex flex-wrap items-center gap-3 text-xs">
+          <label class="flex items-center gap-1.5 font-medium text-slate-700">
+            Số cụm $K$:
+            <select id="sim-k" onchange="resetSimulationData()" class="rounded-lg border border-blue-200 bg-white px-2 py-1 font-mono font-semibold text-blue-700 focus:outline-none">
+              <option value="2">K = 2</option>
+              <option value="3" selected>K = 3</option>
+              <option value="4">K = 4</option>
+            </select>
+          </label>
+
+          <label class="flex items-center gap-1.5 font-medium text-slate-700">
+            Độ chồng lấn:
+            <input id="sim-spread" type="range" min="0.4" max="1.4" step="0.1" value="0.8" onchange="resetSimulationData()" class="w-20 accent-blue-600">
+          </label>
+
+          <label class="flex items-center gap-1.5 font-medium text-slate-700">
+            reg:
+            <select id="sim-reg" class="rounded-lg border border-blue-200 bg-white px-1.5 py-1 font-mono text-slate-700 focus:outline-none">
+              <option value="1e-6" selected>1e-6</option>
+              <option value="1e-3">1e-3</option>
+              <option value="1e-2">1e-2</option>
+            </select>
+          </label>
+
+          <button onclick="resetSimulationData()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-medium transition">
+            ↻ Dữ liệu mới
+          </button>
+        </div>
+
+        <!-- Step Execution Buttons -->
+        <div class="lg:col-span-7 flex flex-wrap items-center justify-start lg:justify-end gap-1.5 text-xs">
+          <button onclick="simInitParams()" class="px-2.5 py-1.5 rounded-xl bg-white hover:bg-blue-50 text-slate-800 border border-blue-200 font-semibold transition">
+            1. Init $\boldsymbol{\theta}^{(0)}$
+          </button>
+          <button onclick="simRunEStep()" class="px-2.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-xs transition">
+            2. Chạy E-Step
+          </button>
+          <button onclick="simRunMStep()" class="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs transition">
+            3. Chạy M-Step
+          </button>
+          <button onclick="simRunOneEM()" class="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs transition">
+            ▶ 1 Vòng (E+M)
+          </button>
+          <button id="btn-autorun" onclick="simToggleAuto()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs transition">
+            ⚡ Auto Run
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Lab Grid: Left Scatter Canvas + Right Charts & Live Params -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 items-stretch">
+        <!-- Scatter Canvas -->
+        <div class="lg:col-span-7 bg-white border border-blue-100 rounded-2xl p-2.5 flex flex-col justify-between relative min-h-[320px]">
+          <div class="flex items-center justify-between text-[11px] text-slate-500 px-1 pb-1">
+            <span>Màu điểm dữ liệu pha trộn theo ma trận Responsibility $\mathbf{R}$ (Soft Clustering)</span>
+            <span class="font-mono text-blue-600">Elip 1σ &amp; 2σ</span>
+          </div>
+          <div class="relative flex-1 w-full rounded-xl overflow-hidden bg-slate-50/70 border border-slate-100">
+            <canvas id="em-canvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Right Panel: Convergence Curve + Live Parameters + Sample R -->
+        <div class="lg:col-span-5 flex flex-col gap-3 justify-between">
+          <!-- Log-Likelihood Convergence Chart -->
+          <div class="bg-white border border-blue-100 rounded-2xl p-3 flex flex-col h-36">
+            <div class="flex items-center justify-between text-xs mb-1">
+              <span class="font-bold text-slate-800">Đường cong hội tụ Mean Log-Likelihood</span>
+              <span id="ll-delta" class="font-mono text-[11px] text-emerald-600"></span>
+            </div>
+            <div class="relative flex-1 w-full">
+              <canvas id="ll-canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Learned Parameters Table -->
+          <div class="bg-white border border-blue-100 rounded-2xl p-3 overflow-x-auto">
+            <div class="text-xs font-bold text-slate-800 mb-1.5">Bộ tham số cập nhật hiện tại $\boldsymbol{\theta}^{(t)}$</div>
+            <table class="w-full text-left text-[11px] font-mono">
+              <thead class="bg-blue-50 text-slate-700">
+                <tr>
+                  <th class="p-1.5 rounded-l-lg">Cụm</th>
+                  <th class="p-1.5">$\pi_k$</th>
+                  <th class="p-1.5">Tâm $\boldsymbol{\mu}_k$</th>
+                  <th class="p-1.5 rounded-r-lg">$\text{diag}(\boldsymbol{\Sigma}_k)$</th>
+                </tr>
+              </thead>
+              <tbody id="params-tbody" class="divide-y divide-slate-100 text-slate-700">
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Sample Responsibility Matrix R -->
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-2.5">
+            <div class="flex items-center justify-between text-[11px] mb-1">
+              <span class="font-bold text-slate-700">Mẫu ma trận $\mathbf{R}$ (4 điểm đầu tiên)</span>
+              <span class="text-slate-500">Tổng hàng = 1.00</span>
+            </div>
+            <div id="r-matrix-preview" class="font-mono text-[11px] text-slate-600 overflow-x-auto">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 15 / 16 • Interactive EM Simulator (JavaScript Engine đồng bộ với Python Code)</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+    <!-- ==================== SLIDE 16 ==================== -->
+    <section class="slide-container flex-col justify-between glass-card rounded-3xl p-6 sm:p-8 min-h-[76vh]" data-title="16. Tổng kết quy trình EM & So sánh E-Step vs M-Step">
+      <div>
+        <div class="flex items-center gap-2 text-xs font-semibold text-blue-600 uppercase tracking-wider">
+          <span>Slide 16</span> • <span>Tổng kết &amp; Kinh nghiệm thực tiễn</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Tổng kết quy trình thuật toán EM &amp; Lưu ý triển khai</h2>
+      </div>
+
+      <div class="space-y-4 my-3">
+        <!-- Closed-Loop Flowchart -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 relative">
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">Bước 0</span>
+            <h3 class="text-sm font-bold text-slate-800 mt-2">Khởi tạo $\boldsymbol{\theta}^{(0)}$</h3>
+            <p class="text-xs text-slate-600 mt-1">Khởi tạo $\pi_k, \boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k$ hợp lệ (thường dùng K-Means++ để khởi tạo tốt).</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-sky-50 border border-sky-200 relative">
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-sky-200 text-sky-800">Bước 1 • E-Step</span>
+            <h3 class="text-sm font-bold text-sky-900 mt-2">Tính Responsibility $\mathbf{R}$</h3>
+            <p class="text-xs text-slate-700 mt-1">Cố định $\boldsymbol{\theta}^{(t)}$, tính $r_{ik}^{(t)} = P(z_{ik}=1 \mid \mathbf{x}_i, \boldsymbol{\theta}^{(t)})$ bằng Log-Sum-Exp.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 relative">
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-200 text-blue-800">Bước 2 • M-Step</span>
+            <h3 class="text-sm font-bold text-blue-900 mt-2">Cập nhật $\boldsymbol{\theta}^{(t+1)}$</h3>
+            <p class="text-xs text-slate-700 mt-1">Cố định $\mathbf{R}$, tối đa hóa $\mathcal{Q}(\boldsymbol{\theta}\mid\boldsymbol{\theta}^{(t)})$ tìm $\boldsymbol{\mu}_k, \boldsymbol{\Sigma}_k, \pi_k$ mới.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 relative">
+            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-200 text-emerald-800">Bước 3 • Hội tụ</span>
+            <h3 class="text-sm font-bold text-emerald-900 mt-2">Kiểm tra điều kiện dừng</h3>
+            <p class="text-xs text-slate-700 mt-1">Nếu $|\mathcal{L}^{(t+1)} - \mathcal{L}^{(t)}| < \epsilon$ thì dừng; ngược lại $t \leftarrow t+1$ quay lại E-Step.</p>
+          </div>
+        </div>
+
+        <!-- Comparison E-Step vs M-Step & Practical Notes -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          <div class="lg:col-span-7 bg-white border border-blue-100 rounded-2xl overflow-hidden">
+            <table class="w-full text-left text-xs sm:text-sm">
+              <thead class="bg-blue-50 text-slate-800 border-b border-blue-100">
+                <tr>
+                  <th class="p-3 font-bold">Tiêu chí</th>
+                  <th class="p-3 font-bold text-sky-700">E-Step (Expectation)</th>
+                  <th class="p-3 font-bold text-blue-700">M-Step (Maximization)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                  <td class="p-2.5 font-semibold">Biến cố định</td>
+                  <td class="p-2.5">Bộ tham số $\boldsymbol{\theta}^{(t)}$</td>
+                  <td class="p-2.5">Ma trận hậu nghiệm $\mathbf{R}^{(t)}$</td>
+                </tr>
+                <tr>
+                  <td class="p-2.5 font-semibold">Đại lượng cần tìm</td>
+                  <td class="p-2.5">Phân phối hậu nghiệm $\mathbf{R}$ &amp; hàm $\mathcal{Q}$</td>
+                  <td class="p-2.5">Tham số mới $\boldsymbol{\theta}^{(t+1)} = \arg\max_{\boldsymbol{\theta}} \mathcal{Q}$</td>
+                </tr>
+                <tr>
+                  <td class="p-2.5 font-semibold">Bản chất toán học</td>
+                  <td class="p-2.5">Suy diễn Bayes (Posterior inference)</td>
+                  <td class="p-2.5">Ước lượng MLE có trọng số (Weighted MLE)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="lg:col-span-5 bg-blue-50/70 border border-blue-200 rounded-2xl p-4 flex flex-col justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-blue-900 mb-2">3 Lưu ý quan trọng trong thực tế</h3>
+              <ul class="text-xs sm:text-sm text-slate-700 space-y-1.5 list-disc pl-5">
+                <li><strong>Cực trị địa phương (Local Optima):</strong> EM đảm bảo hội tụ đơn điệu nhưng phụ thuộc điểm khởi tạo $\implies$ chạy nhiều lần (`n_init`) và chọn mô hình có Log-Likelihood cao nhất.</li>
+                <li><strong>Ổn định số học:</strong> Luôn dùng <code class="font-mono text-blue-700">logsumexp</code> và phân rã Cholesky.</li>
+                <li><strong>Chính quy hóa:</strong> Luôn cộng $\epsilon_{\text{reg}}\mathbf{I}$ vào ma trận hiệp phương sai.</li>
+              </ul>
+            </div>
+            <div class="mt-3 pt-2 border-t border-blue-200 text-xs font-semibold text-blue-800 text-right">
+              Cảm ơn thầy cô và các bạn đã theo dõi!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Slide 16 / 16 • Tổng kết Thuật toán EM</span>
+        <span class="font-medium text-slate-600">Trường Đại học Công nghệ thông tin - ĐHQG TPHCM</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JavaScript: Slide Navigation, KaTeX, Highlight.js & Real EM Simulator -->
+  <script>
+    // ==================== 1. SLIDE NAVIGATION & UI ====================
+    const slides = Array.from(document.querySelectorAll('.slide-container'));
+    let currentSlide = 0;
+
+    function updateSlideUI() {
+      slides.forEach((slide, idx) => {
+        if (idx === currentSlide) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+
+      const total = slides.length;
+      document.getElementById('slide-counter').textContent = `${currentSlide + 1} / ${total}`;
+      document.getElementById('progress-bar').style.width = `${((currentSlide + 1) / total) * 100}%`;
+      document.getElementById('header-slide-title').textContent = slides[currentSlide].dataset.title || '';
+
+      document.getElementById('btn-prev').disabled = currentSlide === 0;
+      document.getElementById('btn-next').disabled = currentSlide === total - 1;
+
+      // Highlight active item in TOC
+      document.querySelectorAll('.toc-item').forEach((btn, idx) => {
+        if (idx === currentSlide) {
+          btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+          btn.classList.remove('bg-slate-50', 'text-slate-700', 'border-slate-200');
+        } else {
+          btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+          btn.classList.add('bg-slate-50', 'text-slate-700', 'border-slate-200');
+        }
+      });
+
+      // Resize simulator canvases when Slide 15 becomes active
+      if (currentSlide === 14) {
+        requestAnimationFrame(() => {
+          resizeSimCanvases();
+          renderSimulation();
+        });
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        updateSlideUI();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlideUI();
+      }
+    }
+
+    function goToSlide(index) {
+      if (index >= 0 && index < slides.length) {
+        currentSlide = index;
+        updateSlideUI();
+        const modal = document.getElementById('toc-modal');
+        if (!modal.classList.contains('hidden')) {
+          toggleTOC();
+        }
+      }
+    }
+
+    function toggleTOC() {
+      const modal = document.getElementById('toc-modal');
+      if (modal.classList.contains('hidden')) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function buildTOC() {
+      const grid = document.getElementById('toc-grid');
+      grid.innerHTML = '';
+      slides.forEach((slide, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'toc-item text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:border-blue-400 text-xs sm:text-sm font-medium text-slate-700 transition truncate';
+        btn.textContent = slide.dataset.title;
+        btn.onclick = () => goToSlide(idx);
+        grid.appendChild(btn);
+      });
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'm') {
+        toggleTOC();
+      } else if (e.key === 'Escape') {
+        const modal = document.getElementById('toc-modal');
+        if (!modal.classList.contains('hidden')) toggleTOC();
+      }
+    });
+
+    // Touch swipe navigation on mobile (avoiding canvas drag conflicts)
+    let touchStartX = 0;
+    document.addEventListener('touchstart', (e) => {
+      if (e.target.tagName === 'CANVAS' || e.target.tagName === 'INPUT') return;
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      if (e.target.tagName === 'CANVAS' || e.target.tagName === 'INPUT') return;
+      const dx = e.changedTouches[0].screenX - touchStartX;
+      if (Math.abs(dx) > 65) {
+        if (dx < 0) nextSlide();
+        else prevSlide();
+      }
+    }, { passive: true });
+
+    // ==================== 2. INTERACTIVE 2D GMM EM ENGINE ====================
+    // Mirrors the exact Python logic presented in Slides 6, 8, 11-14
+    const CLUSTER_COLORS = [
+      [37, 99, 235],   // Royal Blue
+      [234, 88, 12],   // Warm Orange
+      [16, 185, 129],  // Emerald Green
+      [147, 51, 234]   // Purple
+    ];
+
+    let simData = [];        // Array of [x, y]
+    let simK = 3;
+    let simPi = [];          // Array(K)
+    let simMu = [];          // Array(K) of [mx, my]
+    let simCov = [];         // Array(K) of [[a, b], [c, d]]
+    let simR = [];           // Array(N) of Array(K)
+    let simIter = 0;
+    let simLLHistory = [];
+    let autoTimer = null;
+
+    function randn() {
+      // Box-Muller transform
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    function generateSynthetic2D(K, spread) {
+      const N_per_cluster = Math.floor(210 / K);
+      const pts = [];
+      const presets = [
+        { cx: -2.4, cy: -1.6, sx: 0.75 * spread, sy: 0.45 * spread, angle: 0.5 },
+        { cx: 2.3,  cy: 1.7,  sx: 0.85 * spread, sy: 0.42 * spread, angle: -0.6 },
+        { cx: -0.3, cy: 2.3,  sx: 0.50 * spread, sy: 0.80 * spread, angle: 0.25 },
+        { cx: 2.2,  cy: -2.0, sx: 0.65 * spread, sy: 0.55 * spread, angle: -0.35 }
+      ];
+
+      for (let k = 0; k < K; k++) {
+        const p = presets[k];
+        const cosA = Math.cos(p.angle);
+        const sinA = Math.sin(p.angle);
+        for (let i = 0; i < N_per_cluster; i++) {
+          const u = randn() * p.sx;
+          const v = randn() * p.sy;
+          const x = p.cx + u * cosA - v * sinA;
+          const y = p.cy + u * sinA + v * cosA;
+          pts.push([x, y]);
+        }
+      }
+      return pts;
+    }
+
+    // 2D log_gauss(X, mu_k, cov_k)
+    function logGauss2D(x, mu, cov) {
+      const dx = x[0] - mu[0];
+      const dy = x[1] - mu[1];
+      const a = cov[0][0], b = cov[0][1], c = cov[1][0], d = cov[1][1];
+      const det = a * d - b * c;
+      const safeDet = Math.max(det, 1e-12);
+      const inv00 = d / safeDet;
+      const inv01 = -b / safeDet;
+      const inv11 = a / safeDet;
+      const maha = dx * (inv00 * dx + inv01 * dy) + dy * (inv01 * dx + inv11 * dy);
+      return -0.5 * (2.0 * Math.log(2.0 * Math.PI) + Math.log(safeDet) + maha);
+    }
+
+    function logSumExpArr(arr) {
+      const maxVal = Math.max(...arr);
+      let sum = 0;
+      for (let i = 0; i < arr.length; i++) {
+        sum += Math.exp(arr[i] - maxVal);
+      }
+      return maxVal + Math.log(sum);
+    }
+
+    // Exact JavaScript port of Python e_step(X, pi, mu, cov)
+    function jsEStep() {
+      const N = simData.length;
+      const K = simK;
+      const newR = Array.from({ length: N }, () => new Array(K).fill(0));
+      let sumLL = 0;
+
+      for (let i = 0; i < N; i++) {
+        const logp = new Array(K);
+        for (let k = 0; k < K; k++) {
+          logp[k] = Math.log(Math.max(simPi[k], 1e-12)) + logGauss2D(simData[i], simMu[k], simCov[k]);
+        }
+        const ll_i = logSumExpArr(logp);
+        sumLL += ll_i;
+        for (let k = 0; k < K; k++) {
+          newR[i][k] = Math.exp(logp[k] - ll_i);
+        }
+      }
+
+      simR = newR;
+      return sumLL / N;
+    }
+
+    // Exact JavaScript port of Python m_step(X, R, reg=1e-6)
+    function jsMStep() {
+      const N = simData.length;
+      const K = simK;
+      const reg = parseFloat(document.getElementById('sim-reg').value) || 1e-6;
+
+      const Nk = new Array(K).fill(1e-10);
+      for (let i = 0; i < N; i++) {
+        for (let k = 0; k < K; k++) {
+          Nk[k] += simR[i][k];
+        }
+      }
+
+      // Update mu = (R.T @ X) / Nk[:, None]
+      const newMu = Array.from({ length: K }, () => [0, 0]);
+      for (let i = 0; i < N; i++) {
+        for (let k = 0; k < K; k++) {
+          newMu[k][0] += simR[i][k] * simData[i][0];
+          newMu[k][1] += simR[i][k] * simData[i][1];
+        }
+      }
+      for (let k = 0; k < K; k++) {
+        newMu[k][0] /= Nk[k];
+        newMu[k][1] /= Nk[k];
+      }
+
+      // Update cov[k] = ((R[:, k, None] * diff).T @ diff) / Nk[k] + reg * I
+      const newCov = Array.from({ length: K }, () => [[0, 0], [0, 0]]);
+      for (let k = 0; k < K; k++) {
+        let s00 = 0, s01 = 0, s11 = 0;
+        for (let i = 0; i < N; i++) {
+          const dx = simData[i][0] - newMu[k][0];
+          const dy = simData[i][1] - newMu[k][1];
+          const w = simR[i][k];
+          s00 += w * dx * dx;
+          s01 += w * dx * dy;
+          s11 += w * dy * dy;
+        }
+        newCov[k] = [
+          [s00 / Nk[k] + reg, s01 / Nk[k]],
+          [s01 / Nk[k], s11 / Nk[k] + reg]
+        ];
+      }
+
+      // Update pi = Nk / N
+      const newPi = Nk.map(nk => nk / N);
+      const piSum = newPi.reduce((a, b) => a + b, 0);
+      simPi = newPi.map(p => p / piSum);
+      simMu = newMu;
+      simCov = newCov;
+    }
+
+    function stopAutoRun() {
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+        const btn = document.getElementById('btn-autorun');
+        if (btn) btn.textContent = '⚡ Auto Run';
+      }
+    }
+
+    function simInitParams() {
+      stopAutoRun();
+      simK = parseInt(document.getElementById('sim-k').value, 10);
+      simIter = 0;
+      simLLHistory = [];
+      simPi = Array(simK).fill(1.0 / simK);
+
+      // Pick K well-separated initial centers with broad initial covariance
+      simMu = [];
+      const used = new Set();
+      while (simMu.length < simK) {
+        const idx = Math.floor(Math.random() * simData.length);
+        if (!used.has(idx)) {
+          used.add(idx);
+          simMu.push([...simData[idx]]);
+        }
+      }
+
+      simCov = Array.from({ length: simK }, () => [[1.6, 0.0], [0.0, 1.6]]);
+      // Uniform responsibility before first E-step
+      simR = Array.from({ length: simData.length }, () => Array(simK).fill(1.0 / simK));
+
+      document.getElementById('sim-phase').textContent = 'Đã khởi tạo θ⁽⁰⁾';
+      document.getElementById('sim-ll').textContent = '-';
+      document.getElementById('ll-delta').textContent = '';
+      renderSimulation();
+    }
+
+    function resetSimulationData() {
+      stopAutoRun();
+      simK = parseInt(document.getElementById('sim-k').value, 10);
+      const spread = parseFloat(document.getElementById('sim-spread').value);
+      simData = generateSynthetic2D(simK, spread);
+      simInitParams();
+    }
+
+    function simRunEStep() {
+      const meanLL = jsEStep();
+      document.getElementById('sim-phase').textContent = `Xong E-Step (t=${simIter})`;
+      document.getElementById('sim-ll').textContent = meanLL.toFixed(4);
+      renderSimulation();
+      return meanLL;
+    }
+
+    function simRunMStep() {
+      jsMStep();
+      simIter++;
+      const meanLL = jsEStep();
+      simLLHistory.push(meanLL);
+      document.getElementById('sim-phase').textContent = `Xong M-Step (t=${simIter})`;
+      document.getElementById('sim-ll').textContent = meanLL.toFixed(4);
+      updateLLDelta();
+      renderSimulation();
+      return meanLL;
+    }
+
+    function simRunOneEM() {
+      jsEStep();
+      jsMStep();
+      simIter++;
+      const meanLL = jsEStep();
+      simLLHistory.push(meanLL);
+      document.getElementById('sim-phase').textContent = `Hoàn tất vòng t=${simIter}`;
+      document.getElementById('sim-ll').textContent = meanLL.toFixed(4);
+      updateLLDelta();
+      renderSimulation();
+      return meanLL;
+    }
+
+    function updateLLDelta() {
+      const el = document.getElementById('ll-delta');
+      if (simLLHistory.length >= 2) {
+        const diff = simLLHistory[simLLHistory.length - 1] - simLLHistory[simLLHistory.length - 2];
+        el.textContent = `ΔLL = +${Math.max(0, diff).toExponential(2)}`;
+      } else {
+        el.textContent = '';
+      }
+    }
+
+    function simToggleAuto() {
+      const btn = document.getElementById('btn-autorun');
+      if (autoTimer) {
+        stopAutoRun();
+        return;
+      }
+      btn.textContent = '⏸ Dừng lại';
+      autoTimer = setInterval(() => {
+        const ll = simRunOneEM();
+        if (simLLHistory.length >= 2) {
+          const diff = Math.abs(simLLHistory[simLLHistory.length - 1] - simLLHistory[simLLHistory.length - 2]);
+          if (diff < 1e-5 || simIter >= 40) {
+            stopAutoRun();
+            document.getElementById('sim-phase').textContent = `Đã hội tụ (t=${simIter})`;
+          }
+        }
+      }, 280);
+    }
+
+    // ==================== 3. CANVAS VISUALIZATION ====================
+    function resizeSimCanvases() {
+      const c1 = document.getElementById('em-canvas');
+      const c2 = document.getElementById('ll-canvas');
+      if (!c1 || !c2) return;
+      const dpr = window.devicePixelRatio || 1;
+
+      [c1, c2].forEach(c => {
+        const rect = c.parentElement.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          c.width = rect.width * dpr;
+          c.height = rect.height * dpr;
+          const ctx = c.getContext('2d');
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+      });
+    }
+
+    function renderSimulation() {
+      document.getElementById('sim-iter').textContent = `t = ${simIter}`;
+      drawScatterAndEllipses();
+      drawConvergenceChart();
+      updateParamsTable();
+      updateRMatrixPreview();
+    }
+
+    function drawScatterAndEllipses() {
+      const canvas = document.getElementById('em-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const W = rect.width;
+      const H = rect.height;
+      if (W === 0 || H === 0) return;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Coordinate mapping [-5.2, 5.2] -> canvas pixels
+      const range = 5.2;
+      const scale = Math.min(W, H) / (2 * range);
+      const cx0 = W / 2;
+      const cy0 = H / 2;
+      const toPx = (x, y) => [cx0 + x * scale, cy0 - y * scale];
+
+      // Draw subtle grid lines
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1;
+      for (let g = -4; g <= 4; g += 2) {
+        const [gx, gy] = toPx(g, g);
+        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+      }
+
+      // Draw confidence ellipses (1-sigma and 2-sigma) for each Gaussian component
+      for (let k = 0; k < simK; k++) {
+        const [mx, my] = simMu[k];
+        const [[a, b], [, d]] = simCov[k];
+        const rgb = CLUSTER_COLORS[k % CLUSTER_COLORS.length];
+
+        // Eigenvalues & angle of 2x2 symmetric covariance matrix
+        const trace = a + d;
+        const det = Math.max(a * d - b * b, 1e-9);
+        const disc = Math.sqrt(Math.max(0, (trace * trace) / 4 - det));
+        const l1 = Math.max(trace / 2 + disc, 1e-4);
+        const l2 = Math.max(trace / 2 - disc, 1e-4);
+        const angle = 0.5 * Math.atan2(2 * b, a - d);
+
+        const [px, py] = toPx(mx, my);
+
+        [1.0, 2.0].forEach((stdMult, idx) => {
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(-angle); // Canvas y is inverted
+          ctx.beginPath();
+          ctx.ellipse(0, 0, Math.sqrt(l1) * stdMult * scale, Math.sqrt(l2) * stdMult * scale, 0, 0, 2 * Math.PI);
+          ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${idx === 0 ? 0.14 : 0.06})`;
+          ctx.fill();
+          ctx.lineWidth = idx === 0 ? 2 : 1.2;
+          ctx.setLineDash(idx === 0 ? [] : [4, 4]);
+          ctx.strokeStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.85)`;
+          ctx.stroke();
+          ctx.restore();
+        });
+      }
+
+      // Draw data points colored by soft responsibility blend sum_k r_ik * color_k
+      for (let i = 0; i < simData.length; i++) {
+        let rCol = 0, gCol = 0, bCol = 0;
+        for (let k = 0; k < simK; k++) {
+          const w = simR[i] ? simR[i][k] : 1 / simK;
+          const rgb = CLUSTER_COLORS[k % CLUSTER_COLORS.length];
+          rCol += w * rgb[0];
+          gCol += w * rgb[1];
+          bCol += w * rgb[2];
+        }
+        const [px, py] = toPx(simData[i][0], simData[i][1]);
+        ctx.beginPath();
+        ctx.arc(px, py, 4.2, 0, 2 * Math.PI);
+        ctx.fillStyle = `rgb(${Math.round(rCol)}, ${Math.round(gCol)}, ${Math.round(bCol)})`;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.stroke();
+      }
+
+      // Draw cluster means mu_k as crisp crosshairs
+      for (let k = 0; k < simK; k++) {
+        const [px, py] = toPx(simMu[k][0], simMu[k][1]);
+        const rgb = CLUSTER_COLORS[k % CLUSTER_COLORS.length];
+        ctx.beginPath();
+        ctx.arc(px, py, 6.5, 0, 2 * Math.PI);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+        ctx.stroke();
+
+        ctx.fillStyle = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+        ctx.font = 'bold 11px "Be Vietnam Pro", sans-serif';
+        ctx.fillText(`μ${k + 1}`, px + 9, py - 7);
+      }
+    }
+
+    function drawConvergenceChart() {
+      const canvas = document.getElementById('ll-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const W = rect.width;
+      const H = rect.height;
+      if (W === 0 || H === 0) return;
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (simLLHistory.length === 0) {
+        ctx.fillStyle = '#94A3B8';
+        ctx.font = '11px "Be Vietnam Pro", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nhấn "Chạy E-Step" hoặc "1 Vòng (E+M)" để vẽ đồ thị hội tụ', W / 2, H / 2 + 4);
+        return;
+      }
+
+      const padL = 44, padR = 12, padT = 10, padB = 18;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const minLL = Math.min(...simLLHistory);
+      const maxLL = Math.max(...simLLHistory);
+      const span = Math.max(maxLL - minLL, 1e-3);
+
+      // Grid & Y labels
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, padT); ctx.lineTo(padL, H - padB); ctx.lineTo(W - padR, H - padB);
+      ctx.stroke();
+
+      ctx.fillStyle = '#64748B';
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(maxLL.toFixed(2), padL - 5, padT + 8);
+      ctx.fillText(minLL.toFixed(2), padL - 5, H - padB);
+
+      // Line curve
+      ctx.beginPath();
+      simLLHistory.forEach((val, idx) => {
+        const x = padL + (simLLHistory.length === 1 ? plotW / 2 : (idx / (simLLHistory.length - 1)) * plotW);
+        const y = padT + plotH - ((val - minLL) / span) * plotH;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#2563EB';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Points
+      simLLHistory.forEach((val, idx) => {
+        const x = padL + (simLLHistory.length === 1 ? plotW / 2 : (idx / (simLLHistory.length - 1)) * plotW);
+        const y = padT + plotH - ((val - minLL) / span) * plotH;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fillStyle = '#0284C7';
+        ctx.fill();
+      });
+    }
+
+    function updateParamsTable() {
+      const tbody = document.getElementById('params-tbody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      for (let k = 0; k < simK; k++) {
+        const rgb = CLUSTER_COLORS[k % CLUSTER_COLORS.length];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-1.5 font-semibold flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full inline-block" style="background: rgb(${rgb.join(',')})"></span>
+            Cụm ${k + 1}
+          </td>
+          <td class="p-1.5 text-blue-700 font-semibold">${simPi[k].toFixed(3)}</td>
+          <td class="p-1.5">[${simMu[k][0].toFixed(2)}, ${simMu[k][1].toFixed(2)}]</td>
+          <td class="p-1.5">[${simCov[k][0][0].toFixed(2)}, ${simCov[k][1][1].toFixed(2)}]</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updateRMatrixPreview() {
+      const box = document.getElementById('r-matrix-preview');
+      if (!box) return;
+      let html = '<div class="space-y-0.5">';
+      for (let i = 0; i < Math.min(4, simR.length); i++) {
+        const rowStr = simR[i].map(v => v.toFixed(3)).join('  ');
+        html += `<div class="flex justify-between"><span>x_${i + 1}: [${rowStr}]</span><span class="text-emerald-700">Σ=1.00</span></div>`;
+      }
+      html += '</div>';
+      box.innerHTML = html;
+    }
+
+    // ==================== 4. INITIALIZATION ON LOAD ====================
+    window.addEventListener('resize', () => {
+      if (currentSlide === 14) {
+        resizeSimCanvases();
+        renderSimulation();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildTOC();
+      updateSlideUI();
+
+      // Render LaTeX via KaTeX
+      if (typeof renderMathInElement === 'function') {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false }
+          ],
+          throwOnError: false
+        });
+      }
+
+      // Syntax highlighting for Python blocks
+      if (typeof hljs !== 'undefined') {
+        hljs.highlightAll();
+      }
+
+      // Initialize interactive simulator dataset
+      resetSimulationData();
+    });
+  </script>
+</body>
+</html>
